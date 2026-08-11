@@ -1,0 +1,22 @@
+{
+  "name": "dam",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "workspaces": [
+    "apps/*"
+  ],
+  "resolutions": {
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "@types/react": "19.1.17",
+    "@types/react-dom": "19.1.11",
+    "@types/node": "24.13.3"
+  },
+  "scripts": {
+    "web": "yarn workspace web dev",
+    "web:build": "yarn workspace web build",
+    "web:start": "yarn workspace web start",
+    "native": "yarn workspace native start",
+    "ios": "yarn workspace native ios"
+  }
+}

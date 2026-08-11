@@ -1,0 +1,11 @@
+{
+  // yarn workspaces가 expo를 루트로 호이스팅해서 apps/native/node_modules/expo 가 없다.
+  // "expo/tsconfig.base" 로 쓰면 IDE의 TS 서버가 이를 못 찾아 jsx 설정이 통째로 누락된다.
+  "extends": "../../node_modules/expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "types": ["node", "react"]
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"]
+}

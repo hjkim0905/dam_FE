@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-syntax.sh\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/verify-regression.sh\"",
+            "timeout": 180
+          },
+          {
+            "type": "prompt",
+            "prompt": "이번 턴에 변경한 코드를 담. 프로젝트 기준으로 점검하고, 아래 중 하나라도 해당하면 block 하라.\n\n1. 테스트 커버리지 누락: apps/*/lib 또는 apps/*/utils 아래 로직(순수 함수, 파서, 변환, 상태 전이)을 추가하거나 수정했는데 대응하는 *.test.ts 가 없거나 갱신되지 않았다. 화면(app/**/*.tsx)은 테스트 대상이 아니므로 제외한다.\n2. SRP 위반: UI 컴포넌트 안에 도메인 로직(색 계산, 날짜 처리, 데이터 변환)이 섞여 있어 lib으로 분리해야 한다.\n3. 불필요한 주석: 코드를 그대로 옮긴 설명, 이름의 반복, 구획 나누기 주석, 주석 처리된 죽은 코드가 있다. '지우면 다음 사람이 코드를 깨뜨릴까'가 아니오면 불필요한 주석이다.\n4. UI 품질: css prop을 쓴 화면을 만들었는데 계층(scale contrast) 없이 균일하거나, hover/focus/active 상태가 없거나, 색·간격을 globals.css 토큰(var(--...)) 대신 하드코딩했다.\n5. 요청 미충족: 사용자가 요청한 것 중 말없이 빠뜨린 부분이 있다.\n\n해당 없으면 allow 하라. 스타일 규칙(pragma 순서, px 사용)과 타입·테스트·린트는 이미 앞 단계에서 검사했으므로 다시 보지 않는다."
+          }
+        ]
+      }
+    ]
+  }
+}

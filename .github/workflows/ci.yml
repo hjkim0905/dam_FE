@@ -1,0 +1,48 @@
+name: CI
+
+# GitHub Flow: 검증은 PR에서 하고, 머지된 main을 한 번 더 확인한다.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: yarn
+      - run: yarn install --frozen-lockfile
+
+      - run: yarn workspace web typecheck
+      - run: yarn workspace native typecheck
+      - run: yarn workspace web test
+      - run: yarn workspace native test
+      - run: yarn workspace web lint
+      - run: yarn workspace web build
+
+  commit-convention:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: 브랜치 이름 검사
+        run: |
+          branch='${{ github.head_ref }}'
+          echo "$branch" | grep -qE '^(feat|fix|docs|style|refactor|test|chore|perf|ci)/[a-z0-9]+(-[a-z0-9]+)*$' \
+            || { echo "브랜치 이름이 <type>/<kebab-case> 형식이 아니다: $branch"; exit 1; }
+      - name: 커밋 메시지 검사
+        run: |
+          git log --format=%s origin/${{ github.base_ref }}..HEAD | while read -r subject; do
+            printf '%s' "$subject" > /tmp/msg
+            bash .githooks/commit-msg /tmp/msg || exit 1
+          done

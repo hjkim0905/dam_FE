@@ -34,8 +34,13 @@ case "$file" in
       add "- Emotion을 쓰지 않는데 jsxImportSource pragma가 있다. 이 파일의 JSX 전체가 불필요하게 Emotion 런타임을 타게 되고, 서버 컴포넌트라면 빌드가 깨진다. pragma를 지워라."
     fi
 
-    if grep -nE '^[[:space:]]*[a-z-]+:[^;]*[^a-zA-Z0-9-][0-9]+(\.[0-9]+)?px' "$file" >/dev/null; then
-      offenders=$(grep -nE '^[[:space:]]*[a-z-]+:[^;]*[^a-zA-Z0-9-][0-9]+(\.[0-9]+)?px' "$file" | head -n 5 | sed 's/^/    /')
+    # blur 반경은 예외다. blur(1rem) 은 루트 폰트 크기에 따라 흐림 정도가 변하는데
+    # 그건 의도가 아니다. Liquid Glass 재질 표현에 blur 를 계속 쓰게 되므로 px 를 허용한다.
+    px_lines=$(grep -nE '^[[:space:]]*[a-z-]+:[^;]*[^a-zA-Z0-9-][0-9]+(\.[0-9]+)?px' "$file" \
+      | grep -vE 'blur\([^)]*\)' || true)
+
+    if [ -n "$px_lines" ]; then
+      offenders=$(printf '%s' "$px_lines" | head -n 5 | sed 's/^/    /')
       add "- px 고정값이 있다. rem/em/vw/dvh 등 상대 단위로 바꿔라:"$'\n'"$offenders"
     fi
 

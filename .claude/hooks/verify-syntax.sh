@@ -42,6 +42,22 @@ case "$file" in
     if [ "$uses_css_prop" = yes ]; then
       add "- UI를 수정했다. ui-ux-pro-max 기준으로 자가 점검하라: 계층(scale contrast), 간격 리듬, hover/focus/active 상태, globals.css 토큰(var(--...)) 사용 여부."
     fi
+
+    if grep -qE 'transition|animation|@keyframes|useSpring|motion\.' "$file"; then
+      grep -qE '(transition|animation)[^;]*\bease-in\b[^-]' "$file" \
+        && add "- \`ease-in\` 은 시작이 느려 UI가 굼떠 보인다. 진입은 \`ease-out\`, 양방향은 커스텀 커브를 쓴다."
+
+      grep -qE '(transition|animation)[^;]*[^0-9]([4-9][0-9]{2}|[0-9]{4,})ms' "$file" \
+        && add "- 300ms를 넘는 UI 전환이 있다. 사용자가 기다린다고 느낀다. 큰 표면 이동이 아니라면 줄여라."
+
+      grep -qE '(transition|animation)[^;]*\b(width|height|top|left|right|bottom|margin|padding)\b' "$file" \
+        && add "- 레이아웃 속성을 애니메이션하고 있다. 매 프레임 리플로우가 일어난다. \`transform\`/\`opacity\`/\`clip-path\` 로 바꿔라."
+
+      grep -q 'prefers-reduced-motion' "$file" \
+        || add "- 모션이 있는데 \`prefers-reduced-motion\` 대응이 없다. 접근성 필수 항목이다."
+
+      add "- 모션을 다뤘다. \`emil-design-eng\` (타이밍·이징·인터럽션)과 \`apple-design\` (스프링·속도 인계·모멘텀) 기준으로 자가 점검하라. 특히 이 앱은 WebView 안이라 전환이 끊기면 즉시 웹 티가 난다."
+    fi
     ;;
 esac
 

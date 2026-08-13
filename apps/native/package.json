@@ -6,7 +6,7 @@
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
-    "test": "tsx utils/bridge.test.ts",
+    "test": "tsx --test \"**/*.test.ts\"",
     "typecheck": "tsc --noEmit",
     "android": "expo run:android"
   },

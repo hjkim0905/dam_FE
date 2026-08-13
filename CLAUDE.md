@@ -4,7 +4,7 @@
 구조: `apps/native` (Expo RN 쉘 + WebView) + `apps/web` (Next.js App Router, 실제 화면).
 
 - **코드 스타일**: Airbnb JavaScript 스타일 가이드를 따른다. 위배되는 코드가 있으면 반드시 알려줄 것.
-- **스타일링은 Emotion `css` prop**: `css={css\`...\`}` 인라인 방식을 기본으로 쓴다. Tailwind는 쓰지 않는다.
+- **스타일링은 Emotion `css` prop**: `css={css\`...\`}` 인라인 방식을 기본으로 쓴다.
   - `styled` 컴포넌트는 기본 선택지가 아니다. 같은 스타일이 3곳 이상에서 반복되거나 재사용 가능한 UI 프리미티브(Button 등)를 만들 때만 쓴다.
   - `px` 고정값 사용을 최대한 피하고 `rem`, `em`, `vw`, `vh`, `dvh` 등 상대 단위를 사용한다. 위배 시 반드시 알려줄 것.
   - 색·간격 등 디자인 토큰은 `globals.css`의 CSS 변수로 정의하고 `var(--...)`로 참조한다.

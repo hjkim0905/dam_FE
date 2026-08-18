@@ -4,8 +4,16 @@
 import { css } from '@emotion/react';
 
 const DEMO_COLORS = [
-  '#8a9a7b', '#c98d6b', '#5f7d95', '#d4b483', '#7d6b8a',
-  '#a86b6b', '#6b8a80', '#9a8a6b', '#6b7d9a', '#b39a7d',
+  '#8a9a7b',
+  '#c98d6b',
+  '#5f7d95',
+  '#d4b483',
+  '#7d6b8a',
+  '#a86b6b',
+  '#6b8a80',
+  '#9a8a6b',
+  '#6b7d9a',
+  '#b39a7d',
 ];
 
 export default function Flow() {

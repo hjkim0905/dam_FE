@@ -60,7 +60,7 @@ export default function Home() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        background-color: blue;
+        padding-bottom: var(--space-tabbar);
       `}
     >
       <header

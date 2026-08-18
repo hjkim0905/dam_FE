@@ -7,6 +7,11 @@
   --color-faint: oklch(88% 0 0);
 
   --space-edge: 2rem;
+  /* 네이티브 탭바가 먹는 높이. 웹은 탭바의 존재를 알 수 없고(웹뷰 위에 얹힌 네이티브 뷰),
+     env(safe-area-inset-bottom) 은 홈 인디케이터만 알려 준다.
+     #screen 은 이 값을 빼지 않는다 — 콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다.
+     탭바를 피해야 하는 화면만 스스로 padding-bottom 으로 가져간다. */
+  --space-tabbar: 7rem;
 
   --duration-fast: 0.15s;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -18,7 +23,8 @@
    탭바 몫은 빼지 않는다 — 콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다. */
 #screen {
   height: 100%;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 *,

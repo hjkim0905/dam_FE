@@ -16,13 +16,13 @@ export default function Flow() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding: var(--space-safe-top) var(--space-edge) var(--space-safe-bottom);
+        padding: 0 var(--space-edge);
       `}
     >
       <h1
         css={css`
           position: absolute;
-          top: calc(var(--space-safe-top) + 3rem);
+          top: 3rem;
           left: var(--space-edge);
           margin: 0;
           font-size: 1.75rem;

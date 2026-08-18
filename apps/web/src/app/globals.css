@@ -7,14 +7,18 @@
   --color-faint: oklch(88% 0 0);
 
   --space-edge: 2rem;
-  /* 안전 영역은 body 가 아니라 화면(main)이 가진다. body 가 패딩을 가지면 화면이
-     그만큼 안쪽에서 시작해 배경이 경계에서 끊긴다. 탭바 몫은 빼지 않는다 —
-     콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다. */
-  --space-safe-top: env(safe-area-inset-top);
-  --space-safe-bottom: env(safe-area-inset-bottom);
 
   --duration-fast: 0.15s;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 안전 영역은 오직 여기서만 준다.
+   body 가 가지면 배경이 그 선에서 끊기고, 화면마다 주면 절대 위치 요소가 매번
+   이 값을 다시 더해야 해서 하나만 빠뜨려도 어긋난다.
+   탭바 몫은 빼지 않는다 — 콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다. */
+#screen {
+  height: 100%;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
 
 *,

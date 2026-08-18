@@ -60,7 +60,6 @@ export default function Home() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding-bottom: var(--space-tabbar);
       `}
     >
       <header

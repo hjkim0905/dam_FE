@@ -6,10 +6,10 @@
     "apps/*"
   ],
   "resolutions": {
-    "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "@types/react": "19.1.17",
-    "@types/react-dom": "19.1.11",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "@types/react": "19.2.4",
+    "@types/react-dom": "19.2.1",
     "@types/node": "24.13.3"
   },
   "scripts": {

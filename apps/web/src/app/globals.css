@@ -1,8 +1,10 @@
 :root {
-  --color-background: oklch(94% 0.012 85);
+  color-scheme: light;
+
+  --color-background: #ffffff;
   --color-foreground: oklch(20% 0 0);
-  --color-muted: oklch(66% 0.008 70);
-  --color-faint: oklch(90% 0.004 80);
+  --color-muted: oklch(60% 0 0);
+  --color-faint: oklch(88% 0 0);
 
   --space-edge: 2rem;
   --space-tabbar: 7rem;

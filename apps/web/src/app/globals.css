@@ -7,10 +7,11 @@
   --color-faint: oklch(88% 0 0);
 
   --space-edge: 2rem;
-  /* 네이티브 탭바가 먹는 높이. env(safe-area-inset-bottom) 은 홈 인디케이터만 알려 주고
-     탭바는 웹뷰 위에 얹힌 네이티브 뷰라 웹이 알 방법이 없어, 여백을 직접 잡아 준다.
-     배경은 탭바 뒤로 흘러가야 유리가 굴절시킬 것이 생기므로 이 값은 콘텐츠에만 준다. */
-  --space-tabbar: 7rem;
+  /* 안전 영역은 body 가 아니라 화면(main)이 가진다. body 가 패딩을 가지면 화면이
+     그만큼 안쪽에서 시작해 배경이 경계에서 끊긴다. 탭바 몫은 빼지 않는다 —
+     콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다. */
+  --space-safe-top: env(safe-area-inset-top);
+  --space-safe-bottom: env(safe-area-inset-bottom);
 
   --duration-fast: 0.15s;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -34,8 +35,6 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;

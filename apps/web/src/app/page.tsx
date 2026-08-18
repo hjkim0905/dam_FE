@@ -60,13 +60,14 @@ export default function Home() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding-bottom: var(--space-tabbar);
+        padding: var(--space-safe-top) 0 var(--space-safe-bottom);
       `}
     >
       <header
         css={css`
           position: absolute;
-          top: 3rem;
+          /* 절대 위치는 padding box 기준이라 main 의 안전 영역 패딩을 건너뛴다. */
+          top: calc(var(--space-safe-top) + 3rem);
           left: var(--space-edge);
         `}
       >

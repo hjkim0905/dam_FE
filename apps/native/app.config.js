@@ -1,4 +1,4 @@
-import "dotenv/config";
+import { BACKGROUND } from "./theme";
 
 export default {
   expo: {
@@ -7,6 +7,7 @@ export default {
     version: "1.0.0",
     orientation: "portrait",
     userInterfaceStyle: "light",
+    backgroundColor: BACKGROUND,
     newArchEnabled: true,
     scheme: "dam",
     platforms: ["ios"],
@@ -18,7 +19,16 @@ export default {
         ITSAppUsesNonExemptEncryption: false,
       },
     },
-    plugins: ["expo-splash-screen"],
+    plugins: [
+      "expo-router",
+      "expo-splash-screen",
+      [
+        "expo-build-properties",
+        {
+          ios: { deploymentTarget: "26.0" },
+        },
+      ],
+    ],
     extra: {
       webUrl: process.env.WEB_URL ?? "http://localhost:3000",
     },

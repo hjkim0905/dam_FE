@@ -3,6 +3,14 @@ export type BridgeMessage = {
   payload?: unknown;
 };
 
+export const HAPTIC_STYLES = ["selection", "light", "medium"] as const;
+
+export type HapticStyle = (typeof HAPTIC_STYLES)[number];
+
+export type BridgeCommand =
+  | { type: "PING" }
+  | { type: "HAPTIC"; style: HapticStyle };
+
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
     const parsed: unknown = JSON.parse(raw);
@@ -15,14 +23,32 @@ export function parseBridgeMessage(raw: string): BridgeMessage | null {
   }
 }
 
-export async function handleBridgeMessage(
-  message: BridgeMessage
-): Promise<BridgeMessage | null> {
+function fieldOf(payload: unknown, key: string): unknown {
+  if (typeof payload !== "object" || payload === null) return undefined;
+  return (payload as Record<string, unknown>)[key];
+}
+
+function memberOf<T extends string>(
+  allowed: readonly T[],
+  value: unknown
+): T | null {
+  return allowed.includes(value as T) ? (value as T) : null;
+}
+
+export function decodeCommand(raw: string): BridgeCommand | null {
+  const message = parseBridgeMessage(raw);
+  if (!message) return null;
+
   switch (message.type) {
     case "PING":
-      return { type: "PONG" };
+      return { type: "PING" };
+
+    case "HAPTIC": {
+      const style = memberOf(HAPTIC_STYLES, fieldOf(message.payload, "style"));
+      return style ? { type: "HAPTIC", style } : null;
+    }
+
     default:
-      if (__DEV__) console.warn(`[bridge] unhandled message type: ${message.type}`);
       return null;
   }
 }

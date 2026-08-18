@@ -1,6 +1,14 @@
 :root {
-  --color-background: oklch(99% 0 0);
+  --color-background: oklch(94% 0.012 85);
   --color-foreground: oklch(20% 0 0);
+  --color-muted: oklch(66% 0.008 70);
+  --color-faint: oklch(90% 0.004 80);
+
+  --space-edge: 2rem;
+  --space-tabbar: 7rem;
+
+  --duration-fast: 0.15s;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 *,
@@ -13,6 +21,9 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-background);
 }
 
 body {

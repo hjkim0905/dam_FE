@@ -20,11 +20,11 @@
 /* 안전 영역은 오직 여기서만 준다.
    body 가 가지면 배경이 그 선에서 끊기고, 화면마다 주면 절대 위치 요소가 매번
    이 값을 다시 더해야 해서 하나만 빠뜨려도 어긋난다.
-   탭바 몫은 빼지 않는다 — 콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다. */
+   탭바 몫은 빼지 않는다 — 콘텐츠가 유리 밑으로 흘러야 굴절시킬 것이 생긴다.
+   좌우는 세로 고정(app.config.js 의 orientation)인 동안 항상 0 이라 넣지 않는다. */
 #screen {
   height: 100%;
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
 
 *,

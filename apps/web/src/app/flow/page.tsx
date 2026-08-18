@@ -16,7 +16,7 @@ export default function Flow() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding: 0 var(--space-edge);
+        padding: 0 var(--space-edge) var(--space-tabbar);
       `}
     >
       <h1

@@ -7,6 +7,9 @@
   --color-faint: oklch(88% 0 0);
 
   --space-edge: 2rem;
+  /* 네이티브 탭바가 먹는 높이. env(safe-area-inset-bottom) 은 홈 인디케이터만 알려 주고
+     탭바는 웹뷰 위에 얹힌 네이티브 뷰라 웹이 알 방법이 없어, 여백을 직접 잡아 준다.
+     배경은 탭바 뒤로 흘러가야 유리가 굴절시킬 것이 생기므로 이 값은 콘텐츠에만 준다. */
   --space-tabbar: 7rem;
 
   --duration-fast: 0.15s;

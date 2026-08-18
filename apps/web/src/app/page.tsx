@@ -7,10 +7,24 @@ import { requestHaptic } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
 
 const DEMO_COLORS = [
-  '#8a9a7b', '#c98d6b', '#5f7d95', '#d4b483', '#7d6b8a',
-  '#a86b6b', '#6b8a80', '#9a8a6b', '#6b7d9a', '#b39a7d',
-  '#7b8a6b', '#95755f', '#5f8a95', '#8a6b7d', '#a89a6b',
-  '#6b9a8a', '#9a6b6b', '#7d9a6b',
+  '#8a9a7b',
+  '#c98d6b',
+  '#5f7d95',
+  '#d4b483',
+  '#7d6b8a',
+  '#a86b6b',
+  '#6b8a80',
+  '#9a8a6b',
+  '#6b7d9a',
+  '#b39a7d',
+  '#7b8a6b',
+  '#95755f',
+  '#5f8a95',
+  '#8a6b7d',
+  '#a89a6b',
+  '#6b9a8a',
+  '#9a6b6b',
+  '#7d9a6b',
 ];
 
 const DROP_WIDTH_REM = 4;
@@ -46,6 +60,7 @@ export default function Home() {
         display: flex;
         height: 100%;
         flex-direction: column;
+        padding-bottom: var(--space-tabbar);
       `}
     >
       <header

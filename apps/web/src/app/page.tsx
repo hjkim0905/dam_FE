@@ -16,18 +16,23 @@ const DEMO_COLORS = [
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
 
+// 오늘 방울의 앵커. 웹뷰가 이 해시로 열면 브라우저가 첫 페인트에 스크롤을 맞춰 준다.
+// JS 로 옮기면 하이드레이션 뒤에나 돌아서 첫 방울이 보였다가 튄다.
+const TODAY_ANCHOR = 'today';
+
 export default function Home() {
   const stripRef = useRef<HTMLDivElement>(null);
-  const [centered, setCentered] = useState(0);
+  const [centered, setCentered] = useState(DEMO_COLORS.length - 1);
+
+  const pitchOf = () =>
+    (DROP_WIDTH_REM + DROP_GAP_REM) *
+    parseFloat(getComputedStyle(document.documentElement).fontSize);
 
   const onScroll = () => {
     const strip = stripRef.current;
     if (!strip) return;
 
-    const pitch =
-      (DROP_WIDTH_REM + DROP_GAP_REM) *
-      parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const next = snappedIndex(strip.scrollLeft, pitch, DEMO_COLORS.length);
+    const next = snappedIndex(strip.scrollLeft, pitchOf(), DEMO_COLORS.length);
 
     if (next === centered) return;
     setCentered(next);
@@ -37,15 +42,17 @@ export default function Home() {
   return (
     <main
       css={css`
+        position: relative;
         display: flex;
-        height: 100dvh;
+        height: 100%;
         flex-direction: column;
-        padding: 3rem 0 var(--space-tabbar);
       `}
     >
       <header
         css={css`
-          padding: 0 var(--space-edge);
+          position: absolute;
+          top: 3rem;
+          left: var(--space-edge);
         `}
       >
         <h1
@@ -77,7 +84,6 @@ export default function Home() {
           flex: 1;
           align-items: center;
           gap: ${DROP_GAP_REM}rem;
-          margin-top: 3rem;
           padding: 0 calc(50vw - ${DROP_WIDTH_REM / 2}rem);
           overflow-x: auto;
           scroll-snap-type: x mandatory;
@@ -91,12 +97,15 @@ export default function Home() {
         {DEMO_COLORS.map((color, index) => (
           <div
             key={color}
+            id={index === DEMO_COLORS.length - 1 ? TODAY_ANCHOR : undefined}
             css={css`
               flex: 0 0 auto;
               width: ${DROP_WIDTH_REM}rem;
               height: 14rem;
               border-radius: 999rem;
               scroll-snap-align: center;
+              /* 앵커로 스크롤될 때 좌우에 이만큼 여백을 확보하게 해서 가운데로 오게 한다. */
+              scroll-margin-inline: calc(50vw - ${DROP_WIDTH_REM / 2}rem);
               transition: transform var(--duration-fast) var(--ease-out-expo);
             `}
             style={{

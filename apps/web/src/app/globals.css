@@ -8,8 +8,14 @@
 
   --space-edge: 2rem;
 
+  --radius-card: 2rem;
+  --radius-pill: 999rem;
+
   --duration-fast: 0.15s;
+  --duration-slow: 0.5s;
+  --duration-ink: 0.9s;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-ink: cubic-bezier(0.64, 0, 0.23, 1);
 }
 
 /* 안전 영역은 오직 여기서만 준다. body 가 가지면 배경이 그 선에서 끊긴다.

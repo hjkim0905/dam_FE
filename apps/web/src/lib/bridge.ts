@@ -38,3 +38,7 @@ export function subscribeToNative(
   window.addEventListener('message', listener);
   return () => window.removeEventListener('message', listener);
 }
+
+export function requestHaptic(style: 'selection' | 'light' | 'medium'): void {
+  sendToNative({ type: 'HAPTIC', payload: { style } });
+}

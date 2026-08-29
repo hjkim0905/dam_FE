@@ -26,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
-        <EmotionProvider>{children}</EmotionProvider>
+        <EmotionProvider>
+          <div id="screen">{children}</div>
+        </EmotionProvider>
       </body>
     </html>
   );

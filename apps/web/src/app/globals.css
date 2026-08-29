@@ -1,6 +1,24 @@
 :root {
-  --color-background: oklch(99% 0 0);
+  color-scheme: light;
+
+  --color-background: #ffffff;
   --color-foreground: oklch(20% 0 0);
+  --color-muted: oklch(60% 0 0);
+  --color-faint: oklch(88% 0 0);
+
+  --space-edge: 2rem;
+
+  --duration-fast: 0.15s;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* 안전 영역은 오직 여기서만 준다. body 가 가지면 배경이 그 선에서 끊긴다.
+   아래 값에는 iOS 가 탭바 높이를 포함시키므로, 화면은 탭바를 따로 계산하지 않아도 된다.
+   콘텐츠를 유리 밑으로 흘려야 하는 화면이 생기면 #screen 이 아닌 다른 래퍼를 쓴다.
+   좌우는 세로 고정(app.config.js 의 orientation)인 동안 항상 0 이라 넣지 않는다. */
+#screen {
+  height: 100%;
+  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
 }
 
 *,
@@ -13,13 +31,14 @@ html,
 body {
   margin: 0;
   padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-background);
 }
 
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;

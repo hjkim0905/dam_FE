@@ -11,6 +11,7 @@ export default {
     newArchEnabled: true,
     scheme: "dam",
     platforms: ["ios"],
+    icon: "./assets/icon.png",
     ios: {
       buildNumber: "1",
       supportsTablet: false,

@@ -2,41 +2,37 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useRef, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useRef, useState } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
-
-const DEMO_COLORS = [
-  '#8a9a7b',
-  '#c98d6b',
-  '#5f7d95',
-  '#d4b483',
-  '#7d6b8a',
-  '#a86b6b',
-  '#6b8a80',
-  '#9a8a6b',
-  '#6b7d9a',
-  '#b39a7d',
-  '#7b8a6b',
-  '#95755f',
-  '#5f8a95',
-  '#8a6b7d',
-  '#a89a6b',
-  '#6b9a8a',
-  '#9a6b6b',
-  '#7d9a6b',
-];
+import { entriesInMonth, monthKeyOf, toDateKey } from '@/lib/entries';
+import type { Entry } from '@/lib/entries';
+import { loadEntries } from '@/lib/entry-store';
 
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
 
-// 오늘 방울의 앵커. 웹뷰가 이 해시로 열면 브라우저가 첫 페인트에 스크롤을 맞춰 준다.
-// JS 로 옮기면 하이드레이션 뒤에나 돌아서 첫 방울이 보였다가 튄다.
-const TODAY_ANCHOR = 'today';
-
 export default function Home() {
   const stripRef = useRef<HTMLDivElement>(null);
-  const [centered, setCentered] = useState(DEMO_COLORS.length - 1);
+  const [entries, setEntries] = useState<Entry[]>([]);
+  const [centered, setCentered] = useState(0);
+
+  useEffect(() => setEntries(loadEntries()), []);
+
+  const today = toDateKey(new Date());
+  const thisMonth = entriesInMonth(entries, monthKeyOf(today));
+  const capturedToday = thisMonth.some((e) => e.date === today);
+  const slots = capturedToday ? thisMonth.length : thisMonth.length + 1;
+
+  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 끝으로
+  // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
+  useEffect(() => {
+    const strip = stripRef.current;
+    if (!strip || slots === 0) return;
+    strip.scrollLeft = (slots - 1) * pitchOf();
+    setCentered(slots - 1);
+  }, [slots]);
 
   const pitchOf = () =>
     (DROP_WIDTH_REM + DROP_GAP_REM) *
@@ -45,9 +41,7 @@ export default function Home() {
   const onScroll = () => {
     const strip = stripRef.current;
     if (!strip) return;
-
-    const next = snappedIndex(strip.scrollLeft, pitchOf(), DEMO_COLORS.length);
-
+    const next = snappedIndex(strip.scrollLeft, pitchOf(), slots);
     if (next === centered) return;
     setCentered(next);
     requestHaptic('selection');
@@ -77,7 +71,7 @@ export default function Home() {
             letter-spacing: -0.02em;
           `}
         >
-          8월의 색
+          {new Date().getMonth() + 1}월의 색
         </h1>
         <p
           css={css`
@@ -86,7 +80,7 @@ export default function Home() {
             color: var(--color-muted);
           `}
         >
-          {DEMO_COLORS.length}방울 · {centered + 1}번째
+          {thisMonth.length}방울의 기록
         </p>
       </header>
 
@@ -108,27 +102,45 @@ export default function Home() {
           }
         `}
       >
-        {DEMO_COLORS.map((color, index) => (
+        {thisMonth.map((entry, index) => (
           <div
-            key={color}
-            id={index === DEMO_COLORS.length - 1 ? TODAY_ANCHOR : undefined}
-            css={css`
-              flex: 0 0 auto;
-              width: ${DROP_WIDTH_REM}rem;
-              height: 14rem;
-              border-radius: 999rem;
-              scroll-snap-align: center;
-              /* 앵커로 스크롤될 때 좌우에 이만큼 여백을 확보하게 해서 가운데로 오게 한다. */
-              scroll-margin-inline: calc(50vw - ${DROP_WIDTH_REM / 2}rem);
-              transition: transform var(--duration-fast) var(--ease-out-expo);
-            `}
+            key={entry.date}
+            css={dropStyle}
             style={{
-              backgroundColor: color,
+              backgroundColor: entry.color,
               transform: `scale(${index === centered ? 1 : 0.88})`,
             }}
           />
         ))}
+
+        {!capturedToday && (
+          <Link
+            href="/record"
+            aria-label="오늘의 색 담기"
+            css={[
+              dropStyle,
+              css`
+                display: block;
+                border: 0.125rem dashed var(--color-faint);
+
+                &:active {
+                  border-color: var(--color-muted);
+                }
+              `,
+            ]}
+            style={{ transform: `scale(${centered === slots - 1 ? 1 : 0.88})` }}
+          />
+        )}
       </section>
     </main>
   );
 }
+
+const dropStyle = css`
+  flex: 0 0 auto;
+  width: ${DROP_WIDTH_REM}rem;
+  height: 14rem;
+  border-radius: var(--radius-pill);
+  scroll-snap-align: center;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+`;

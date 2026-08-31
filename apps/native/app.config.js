@@ -18,6 +18,10 @@ export default {
       bundleIdentifier: "com.company.dam",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        // 없으면 사진 선택기를 띄우는 순간 iOS 가 앱을 종료한다.
+        NSCameraUsageDescription: "오늘의 사진을 찍어 그날의 색을 담습니다.",
+        NSPhotoLibraryUsageDescription:
+          "앨범에서 고른 사진으로 그날의 색을 담습니다.",
       },
     },
     plugins: [

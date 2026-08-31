@@ -15,6 +15,12 @@ export function monthKeyOf(dateKey: string): string {
   return dateKey.slice(0, 7);
 }
 
+/** 화면 낭독용. '2026-08-18' 을 그대로 읽으면 알아들을 수 없다. */
+export function monthDayLabel(dateKey: string): string {
+  const [, month, day] = dateKey.split('-');
+  return `${Number(month)}월 ${Number(day)}일`;
+}
+
 export function entriesOn(
   entries: readonly Entry[],
   dateKey: string

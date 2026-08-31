@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
-import { entriesInMonth, monthKeyOf, toDateKey } from '@/lib/entries';
+import { entriesInMonth, monthDayLabel, monthKeyOf, toDateKey } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
 
@@ -29,7 +29,9 @@ export default function Home() {
   const showToday = useCallback(() => {
     const strip = stripRef.current;
     if (!strip || slots === 0) return;
-    strip.scrollLeft = (slots - 1) * pitchOf();
+    // 방울을 눌러 가운데로 데려오는 길이 부드러워야 해서 스트립이 smooth 다.
+    // 오늘로 돌려놓는 건 보이면 안 되므로 이 호출만 즉시로 되돌린다.
+    strip.scrollTo({ left: (slots - 1) * pitchOf(), behavior: 'instant' });
     setCentered(slots - 1);
   }, [slots]);
 
@@ -107,6 +109,7 @@ export default function Home() {
           padding: 0 calc(50vw - ${DROP_WIDTH_REM / 2}rem);
           overflow-x: auto;
           scroll-snap-type: x mandatory;
+          scroll-behavior: smooth;
           scrollbar-width: none;
 
           &::-webkit-scrollbar {
@@ -115,13 +118,18 @@ export default function Home() {
         `}
       >
         {thisMonth.map((entry, index) => (
-          <div
+          <button
             key={entry.date}
+            type="button"
+            aria-label={`${monthDayLabel(entry.date)}의 색`}
+            onClick={(e) =>
+              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' })
+            }
             css={dropStyle}
             style={
               {
                 '--drop-color': entry.color,
-                transform: `scale(${index === centered ? 1 : 0.88})`,
+                '--drop-scale': index === centered ? 1 : 0.88,
               } as CSSProperties
             }
           />
@@ -131,18 +139,10 @@ export default function Home() {
           <Link
             href="/record"
             aria-label="오늘의 색 담기"
-            css={[
-              slotStyle,
-              css`
-                display: block;
-                border: 0.125rem dashed var(--color-faint);
-
-                &:active {
-                  border-color: var(--color-muted);
-                }
-              `,
-            ]}
-            style={{ transform: `scale(${centered === slots - 1 ? 1 : 0.88})` }}
+            css={[slotStyle, emptySlotStyle]}
+            style={
+              { '--drop-scale': centered === slots - 1 ? 1 : 0.88 } as CSSProperties
+            }
           />
         )}
       </section>
@@ -150,15 +150,52 @@ export default function Home() {
   );
 }
 
-/* 담은 자리와 아직 빈 자리가 나눠 갖는 크기와 위치. 표면은 담은 쪽에만 있다. */
+/* 가운데로 오는 확대와 눌림이 같은 transform 을 나눠 쓰므로, 자리 크기는 변수로
+   받고 눌림은 거기에 곱한다. 인라인 style 로 크기를 주면 :active 가 밀려난다. */
 const slotStyle = css`
   position: relative;
   flex: 0 0 auto;
   width: ${DROP_WIDTH_REM}rem;
   height: 14rem;
+  padding: 0;
+  border: none;
+  background: none;
   border-radius: var(--radius-pill);
   scroll-snap-align: center;
+  transform: scale(var(--drop-scale, 1));
   transition: transform var(--duration-fast) var(--ease-out-expo);
+
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.4rem;
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      transform: scale(calc(var(--drop-scale, 1) * 1.02));
+    }
+  }
+
+  &:active {
+    transform: scale(calc(var(--drop-scale, 1) * 0.95));
+  }
+`;
+
+const emptySlotStyle = css`
+  display: block;
+  border: 0.125rem dashed var(--color-faint);
+  transition: transform var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) linear;
+
+  @media (hover: hover) {
+    &:hover {
+      border-color: var(--color-muted);
+    }
+  }
+
+  &:active {
+    border-color: var(--color-foreground);
+  }
 `;
 
 /* 광택은 CSS 그라데이션으로 흉내내면 매끄러워서 오히려 가짜 티가 난다. 회색조 렌더

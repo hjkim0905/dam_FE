@@ -225,7 +225,7 @@ export default function Record() {
               border-radius: var(--radius-pill);
               color: var(--color-background);
               font: inherit;
-              font-weight: 600;
+              font-weight: 400;
               transition: transform var(--duration-fast) var(--ease-out-expo);
 
               &:active {
@@ -260,7 +260,7 @@ export default function Record() {
           <span
             css={css`
               font-size: 1.0625rem;
-              font-weight: 600;
+              font-weight: 400;
               letter-spacing: -0.01em;
             `}
           >

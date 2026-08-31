@@ -17,7 +17,7 @@ export default function CalendarScreen() {
         css={css`
           margin: 0;
           font-size: 1.75rem;
-          font-weight: 600;
+          font-weight: 400;
           letter-spacing: -0.02em;
         `}
       >

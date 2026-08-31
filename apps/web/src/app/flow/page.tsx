@@ -34,7 +34,7 @@ export default function Flow() {
           left: var(--space-edge);
           margin: 0;
           font-size: 1.75rem;
-          font-weight: 600;
+          font-weight: 400;
           letter-spacing: -0.02em;
         `}
       >

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
-import { BACKGROUND, MUTED } from "../theme";
+import { BACKGROUND, FONT, MUTED } from "../theme";
 
 const APPEAR_AFTER_MS = 200;
 
@@ -43,5 +43,5 @@ const styles = StyleSheet.create({
     backgroundColor: BACKGROUND,
   },
   capsule: { width: 64, height: 64 },
-  label: { fontSize: 13, color: MUTED },
+  label: { fontFamily: FONT, fontSize: 14, color: MUTED },
 });

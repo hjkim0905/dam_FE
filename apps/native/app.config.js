@@ -31,6 +31,7 @@ export default {
       "expo-router",
       "expo-splash-screen",
       "expo-image",
+      ["expo-font", { fonts: ["./assets/Galmuri14.ttf"] }],
       [
         "expo-build-properties",
         {

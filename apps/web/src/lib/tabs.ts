@@ -1,4 +1,4 @@
-export const TAB_ROOTS = ['/', '/calendar', '/flow'] as const;
+const TAB_ROOTS = ['/', '/calendar', '/flow'] as const;
 
 /**
  * 탭에 다시 들어왔을 때 돌아갈 첫 화면. 이미 첫 화면이면 null.

@@ -43,11 +43,17 @@ export default function AppWebView({ path }: { path: string }) {
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
   }, []);
 
-  // 탭마다 WebView 가 따로 살아 있어 화면 상태가 그대로 남는다. 다시 들어왔다는
-  // 사실은 네이티브만 알 수 있으므로 웹에 알려주고, 처리 여부는 각 화면이 정한다.
+  // 탭마다 WebView 가 따로 살아 있어 화면 상태가 그대로 남는다. 드나든 사실은
+  // 네이티브만 알 수 있으므로 웹에 알려주고, 처리 여부는 각 화면이 정한다.
+  //
+  // 떠날 때도 알리는 이유: 되돌리기를 돌아온 뒤에 하면 그 왕복이 화면에 보인다.
+  // 탭이 가려진 동안 미리 되돌려 두면 다시 왔을 때 이미 첫 화면이다.
   useFocusEffect(
     useCallback(() => {
       webViewRef.current?.postMessage(JSON.stringify({ type: "FOCUS" }));
+      return () => {
+        webViewRef.current?.postMessage(JSON.stringify({ type: "BLUR" }));
+      };
     }, [])
   );
 

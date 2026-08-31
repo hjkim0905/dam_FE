@@ -12,7 +12,9 @@ export default function TabReset() {
   useEffect(
     () =>
       subscribeToNative((message) => {
-        if (message.type !== 'FOCUS') return;
+        // BLUR 이 본 경로다. FOCUS 는 앱이 내려갔다 오는 등 BLUR 을 놓친 경우의 보험이고,
+        // 이미 첫 화면이면 tabRootFor 가 null 을 주므로 두 번 일하지 않는다.
+        if (message.type !== 'BLUR' && message.type !== 'FOCUS') return;
         const root = tabRootFor(pathname);
         if (root) router.replace(root);
       }),

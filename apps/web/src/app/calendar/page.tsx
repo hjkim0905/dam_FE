@@ -10,14 +10,14 @@ export default function CalendarScreen() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding: 3rem var(--space-edge) 0;
+        padding: 4.5rem var(--space-edge) 0;
       `}
     >
       <h1
         css={css`
           margin: 0;
           font-size: 1.75rem;
-          font-weight: 600;
+          font-weight: 400;
           letter-spacing: -0.02em;
         `}
       >

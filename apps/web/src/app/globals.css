@@ -2,14 +2,25 @@
   color-scheme: light;
 
   --color-background: #ffffff;
-  --color-foreground: oklch(20% 0 0);
-  --color-muted: oklch(60% 0 0);
-  --color-faint: oklch(88% 0 0);
+  /* 순수한 먹색은 파스텔 양모 옆에서 혼자 튄다. 따뜻한 쪽으로 살짝 기울여 둔다. */
+  --color-foreground: oklch(34% 0.015 60);
+  /* 글자로 쓰이는 가장 옅은 색. 흰 배경에서 4.5:1 이 한계라 더 밝히면 WCAG 를 벗어난다. */
+  --color-muted: oklch(56% 0.012 60);
+  /* 면과 선에만 쓴다. 글자로 쓰면 대비가 1.4:1 이라 읽히지 않는다. */
+  --color-faint: oklch(88% 0.008 60);
+  --color-alert: oklch(55% 0.18 25);
 
-  --space-edge: 2rem;
+  /* 양모 테두리가 가장자리 32pt 를 덮으므로, 콘텐츠는 그 밖에서 시작한다. */
+  --space-edge: 3.5rem;
+
+  --radius-card: 2rem;
+  --radius-pill: 999rem;
 
   --duration-fast: 0.15s;
+  --duration-slow: 0.5s;
+  --duration-ink: 0.9s;
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-ink: cubic-bezier(0.64, 0, 0.23, 1);
 }
 
 /* 안전 영역은 오직 여기서만 준다. body 가 가지면 배경이 그 선에서 끊긴다.
@@ -18,7 +29,21 @@
    좌우는 세로 고정(app.config.js 의 orientation)인 동안 항상 0 이라 넣지 않는다. */
 #screen {
   height: 100%;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  padding: var(--inset-top, env(safe-area-inset-top)) 0
+    var(--inset-bottom, env(safe-area-inset-bottom));
+}
+
+/* 로고와 같은 양모 테두리. 모든 화면에 공통이고 콘텐츠 위를 덮으므로
+   방울과 사진이 그 아래로 지나간다. 안전 영역 바깥까지 닿아야 해서
+   #screen 이 아니라 body 에 붙인다. 화면보다 크게 깔아 바깥쪽 뭉친 부분을
+   잘라내며, 보이는 두께는 이 크기 값 하나로 정한다. */
+body::before {
+  content: '';
+  position: fixed;
+  z-index: 10;
+  inset: 0;
+  background: url('/fuzz-frame.webp') center / 110% 109% no-repeat;
+  pointer-events: none;
 }
 
 *,
@@ -39,6 +64,7 @@ body {
 body {
   background: var(--color-background);
   color: var(--color-foreground);
+  font-family: var(--font-galmuri), system-ui, sans-serif;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
   -webkit-user-select: none;
@@ -49,8 +75,29 @@ body {
   -webkit-text-size-adjust: 100%;
 }
 
+/* 폼 요소는 font-family 를 상속하지 않아서 두지 않으면 시스템 폰트로 샌다. */
+input,
+textarea,
+button,
+select {
+  font: inherit;
+}
+
 input,
 textarea {
   -webkit-user-select: text;
   user-select: text;
+}
+
+/* 화면마다 빠뜨리지 않도록 한 곳에서 끈다. 완전히 0 으로 두면 transitionend 가
+   오지 않아 담기 화면의 잉크가 저장으로 넘어가지 못한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

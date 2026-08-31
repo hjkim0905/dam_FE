@@ -1,6 +1,15 @@
 import type { Metadata, Viewport } from 'next';
+import localFont from 'next/font/local';
 import EmotionProvider from './emotion-provider';
+import TabReset from './tab-reset';
 import './globals.css';
+
+/* 설계 크기 14px 의 픽셀 폰트다. 화면의 글자 크기를 14 의 정수배로 두어야 또렷하다. */
+const galmuri = localFont({
+  src: './fonts/Galmuri14.woff2',
+  variable: '--font-galmuri',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
   title: '담. — 하루를 색으로 담다',
@@ -24,8 +33,9 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="ko">
+    <html lang="ko" className={galmuri.variable}>
       <body>
+        <TabReset />
         <EmotionProvider>
           <div id="screen">{children}</div>
         </EmotionProvider>

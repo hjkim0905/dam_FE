@@ -18,6 +18,7 @@
     "web:build": "yarn workspace web build",
     "web:start": "yarn workspace web start",
     "native": "yarn workspace native start",
-    "ios": "yarn workspace native ios"
+    "ios": "yarn workspace native ios",
+    "ios:device": "yarn workspace native ios:device"
   }
 }

@@ -18,6 +18,9 @@ export default {
       bundleIdentifier: "com.company.dam",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
+        // 번들이 한국어를 지원한다고 알려야 WebKit 이 사진 선택 시트를 한국어로 그린다.
+        CFBundleDevelopmentRegion: "ko",
+        CFBundleLocalizations: ["ko"],
         // 없으면 사진 선택기를 띄우는 순간 iOS 가 앱을 종료한다.
         NSCameraUsageDescription: "오늘의 사진을 찍어 그날의 색을 담습니다.",
         NSPhotoLibraryUsageDescription:

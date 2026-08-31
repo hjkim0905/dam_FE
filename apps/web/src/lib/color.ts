@@ -47,14 +47,16 @@ export function averageColor(rgba: Uint8ClampedArray): Rgb | null {
   };
 }
 
+/** 사진은 불투명하므로, 투명한 픽셀은 그 자리에 아무것도 안 그려졌다는 뜻이다. */
 export function pixelAt(
   rgba: Uint8ClampedArray,
   width: number,
   x: number,
   y: number
-): Rgb {
+): Rgb | null {
   const height = rgba.length / CHANNELS / width;
   const offset = (clamp(y, height - 1) * width + clamp(x, width - 1)) * CHANNELS;
+  if (rgba[offset + 3] === 0) return null;
 
   return { r: rgba[offset], g: rgba[offset + 1], b: rgba[offset + 2] };
 }

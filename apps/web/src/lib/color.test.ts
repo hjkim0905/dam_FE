@@ -50,3 +50,9 @@ test('pixelAt 은 캔버스 밖 좌표를 경계로 당긴다', () => {
   assert.deepEqual(pixelAt(data, 2, -5, 0), { r: 10, g: 20, b: 30 });
   assert.deepEqual(pixelAt(data, 2, 99, 0), { r: 40, g: 50, b: 60 });
 });
+
+test('pixelAt 은 아무것도 안 그려진 자리를 null 로 알린다', () => {
+  const blank = new Uint8ClampedArray(2 * 2 * 4);
+
+  assert.equal(pixelAt(blank, 2, 0, 0), null);
+});

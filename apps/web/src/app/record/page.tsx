@@ -15,14 +15,12 @@ const MAX_STORED_EDGE = 640;
 const JPEG_QUALITY = 0.6;
 const FALLBACK_COLOR = '#c9c5c1';
 
-async function toStoredPhoto(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
+function toStoredPhoto(bitmap: ImageBitmap): string {
   const { width, height } = fitSize(bitmap, MAX_STORED_EDGE);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height);
-  bitmap.close();
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 }
 
@@ -30,6 +28,7 @@ export default function Record() {
   const router = useRouter();
   const photoRef = useRef<HTMLDivElement>(null);
   const pixelsRef = useRef<ImageData | null>(null);
+  const bitmapRef = useRef<ImageBitmap | null>(null);
 
   const [photo, setPhoto] = useState('');
   const [color, setColor] = useState(FALLBACK_COLOR);
@@ -41,27 +40,26 @@ export default function Record() {
 
   useEffect(() => {
     const box = photoRef.current;
-    if (!photo || !box) return;
+    const bitmap = bitmapRef.current;
+    if (!photo || !box || !bitmap) return;
 
-    const image = new Image();
-    image.onload = () => {
-      const { width, height } = box.getBoundingClientRect();
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-      const context = canvas.getContext('2d', { willReadFrequently: true });
-      if (!context) return;
+    const { width, height } = box.getBoundingClientRect();
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) return;
 
-      const rect = coverRect(image, { width, height });
-      context.drawImage(image, rect.x, rect.y, rect.width, rect.height);
+    const rect = coverRect(bitmap, { width, height });
+    context.drawImage(bitmap, rect.x, rect.y, rect.width, rect.height);
 
-      const pixels = context.getImageData(0, 0, width, height);
-      pixelsRef.current = pixels;
-      const average = averageColor(pixels.data);
-      setColor(average ? rgbToHex(average) : FALLBACK_COLOR);
-    };
-    image.src = photo;
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
+    pixelsRef.current = pixels;
+    const average = averageColor(pixels.data);
+    setColor(average ? rgbToHex(average) : FALLBACK_COLOR);
   }, [photo]);
+
+  useEffect(() => () => bitmapRef.current?.close(), []);
 
   useEffect(() => {
     if (!ink) return;
@@ -75,14 +73,15 @@ export default function Record() {
     if (!box || !pixels) return;
 
     const bounds = box.getBoundingClientRect();
-    const next = rgbToHex(
-      pixelAt(
-        pixels.data,
-        pixels.width,
-        event.clientX - bounds.left,
-        event.clientY - bounds.top
-      )
+    const picked = pixelAt(
+      pixels.data,
+      pixels.width,
+      event.clientX - bounds.left,
+      event.clientY - bounds.top
     );
+    if (!picked) return;
+
+    const next = rgbToHex(picked);
     setColor((current) => {
       if (current !== next) requestHaptic('selection');
       return next;
@@ -114,6 +113,8 @@ export default function Record() {
           <div
             ref={photoRef}
             onPointerDown={(e) => {
+              // 잡아두지 않으면 iOS 가 드래그를 자기 제스처로 가져가면서 pointermove 가 끊긴다.
+              e.currentTarget.setPointerCapture(e.pointerId);
               setPicking(true);
               pick(e);
             }}
@@ -285,10 +286,14 @@ export default function Record() {
           <input
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={async (e) => {
               const file = e.target.files?.[0];
-              if (file) setPhoto(await toStoredPhoto(file));
+              if (!file) return;
+
+              const bitmap = await createImageBitmap(file);
+              bitmapRef.current?.close();
+              bitmapRef.current = bitmap;
+              setPhoto(toStoredPhoto(bitmap));
             }}
             css={css`
               display: none;

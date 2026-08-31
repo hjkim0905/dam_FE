@@ -5,7 +5,7 @@
 export const BACKGROUND = "#FFFFFF";
 
 /** 웹 globals.css 의 `--color-muted` 와 같은 값. 로딩 문구가 두 쪽에서 같아야 한다. */
-export const MUTED = "#8B8B8B";
+export const MUTED = "#7A736E";
 
 /**
  * 앱의 모든 글자. 웹 globals.css 의 `--font-galmuri` 와 같은 폰트다.

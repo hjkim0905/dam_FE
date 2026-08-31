@@ -4,8 +4,11 @@
   --color-background: #ffffff;
   /* 순수한 먹색은 파스텔 양모 옆에서 혼자 튄다. 따뜻한 쪽으로 살짝 기울여 둔다. */
   --color-foreground: oklch(34% 0.015 60);
-  --color-muted: oklch(62% 0.012 60);
+  /* 글자로 쓰이는 가장 옅은 색. 흰 배경에서 4.5:1 이 한계라 더 밝히면 WCAG 를 벗어난다. */
+  --color-muted: oklch(56% 0.012 60);
+  /* 면과 선에만 쓴다. 글자로 쓰면 대비가 1.4:1 이라 읽히지 않는다. */
   --color-faint: oklch(88% 0.008 60);
+  --color-alert: oklch(55% 0.18 25);
 
   /* 양모 테두리가 가장자리 32pt 를 덮으므로, 콘텐츠는 그 밖에서 시작한다. */
   --space-edge: 3.5rem;

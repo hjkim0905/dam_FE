@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import EmotionProvider from './emotion-provider';
+import TabReset from './tab-reset';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -26,6 +27,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body>
+        <TabReset />
         <EmotionProvider>
           <div id="screen">{children}</div>
         </EmotionProvider>

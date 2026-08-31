@@ -10,6 +10,7 @@ import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
 import { toDateKey, upsertEntry } from '@/lib/entries';
 import { loadEntries, saveEntries } from '@/lib/entry-store';
 import { coverRect, fitSize } from '@/lib/image';
+import LoadingCapsule from '../loading-capsule';
 
 const MAX_STORED_EDGE = 640;
 const JPEG_QUALITY = 0.6;
@@ -36,7 +37,8 @@ export default function Record() {
   const [picking, setPicking] = useState(false);
   const [ink, setInk] = useState('');
   const [spread, setSpread] = useState(false);
-  const [failed, setFailed] = useState(false);
+  const [reading, setReading] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     const box = photoRef.current;
@@ -93,7 +95,7 @@ export default function Record() {
     if (!saveEntries(upsertEntry(loadEntries(), entry))) {
       setInk('');
       setSpread(false);
-      setFailed(true);
+      setError('저장 공간이 부족해요. 지난 기록을 정리해 주세요.');
       return;
     }
     router.replace('/#today');
@@ -108,6 +110,9 @@ export default function Record() {
         padding: 4.5rem var(--space-edge) 0;
       `}
     >
+      {/* 사진을 고른 뒤에 받으면 정작 기다리는 동안 안 보인다. 화면에 들어올 때 미리 받는다. */}
+      <link rel="preload" as="image" href="/loading-capsule.webp" />
+
       {photo ? (
         <>
           <div
@@ -210,19 +215,6 @@ export default function Record() {
             />
           </div>
 
-          {failed && (
-            <p
-              css={css`
-                margin: 0 0 1rem;
-                text-align: center;
-                font-size: 0.8125rem;
-                color: oklch(55% 0.18 25);
-              `}
-            >
-              저장 공간이 부족해요. 지난 기록을 정리해 주세요.
-            </p>
-          )}
-
           <button
             type="button"
             onClick={() => setInk(color)}
@@ -290,10 +282,18 @@ export default function Record() {
               const file = e.target.files?.[0];
               if (!file) return;
 
-              const bitmap = await createImageBitmap(file);
-              bitmapRef.current?.close();
-              bitmapRef.current = bitmap;
-              setPhoto(toStoredPhoto(bitmap));
+              setError('');
+              setReading(true);
+              try {
+                const bitmap = await createImageBitmap(file);
+                bitmapRef.current?.close();
+                bitmapRef.current = bitmap;
+                setPhoto(toStoredPhoto(bitmap));
+              } catch {
+                setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
+              } finally {
+                setReading(false);
+              }
             }}
             css={css`
               display: none;
@@ -301,6 +301,21 @@ export default function Record() {
           />
         </label>
       )}
+
+      {error && (
+        <p
+          css={css`
+            margin: 0 0 1rem;
+            text-align: center;
+            font-size: 0.8125rem;
+            color: oklch(55% 0.18 25);
+          `}
+        >
+          {error}
+        </p>
+      )}
+
+      {reading && <LoadingCapsule label="사진을 읽고 있어요" />}
 
       {ink && (
         <div

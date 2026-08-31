@@ -52,7 +52,7 @@ export default function Flow() {
           css={css`
             width: 100%;
             height: 8rem;
-            border-radius: 999rem;
+            border-radius: var(--radius-pill);
           `}
           style={{
             background: `linear-gradient(to right, ${DEMO_COLORS.join(', ')})`,

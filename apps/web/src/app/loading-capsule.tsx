@@ -33,7 +33,7 @@ export default function LoadingCapsule({ label }: { label: string }) {
       />
       <span
         css={css`
-          font-size: 0.8125rem;
+          font-size: 0.875rem;
           color: var(--color-muted);
         `}
       >

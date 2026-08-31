@@ -85,3 +85,16 @@ textarea {
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* 화면마다 빠뜨리지 않도록 한 곳에서 끈다. 완전히 0 으로 두면 transitionend 가
+   오지 않아 담기 화면의 잉크가 저장으로 넘어가지 못한다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

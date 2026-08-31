@@ -4,6 +4,7 @@
 import { css } from '@emotion/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
 import { entriesInMonth, monthKeyOf, toDateKey } from '@/lib/entries';
@@ -117,10 +118,12 @@ export default function Home() {
           <div
             key={entry.date}
             css={dropStyle}
-            style={{
-              backgroundColor: entry.color,
-              transform: `scale(${index === centered ? 1 : 0.88})`,
-            }}
+            style={
+              {
+                '--drop-color': entry.color,
+                transform: `scale(${index === centered ? 1 : 0.88})`,
+              } as CSSProperties
+            }
           />
         ))}
 
@@ -129,7 +132,7 @@ export default function Home() {
             href="/record"
             aria-label="오늘의 색 담기"
             css={[
-              dropStyle,
+              slotStyle,
               css`
                 display: block;
                 border: 0.125rem dashed var(--color-faint);
@@ -147,11 +150,31 @@ export default function Home() {
   );
 }
 
-const dropStyle = css`
+/* 담은 자리와 아직 빈 자리가 나눠 갖는 크기와 위치. 표면은 담은 쪽에만 있다. */
+const slotStyle = css`
+  position: relative;
   flex: 0 0 auto;
   width: ${DROP_WIDTH_REM}rem;
   height: 14rem;
   border-radius: var(--radius-pill);
   scroll-snap-align: center;
   transition: transform var(--duration-fast) var(--ease-out-expo);
+`;
+
+/* 광택은 CSS 그라데이션으로 흉내내면 매끄러워서 오히려 가짜 티가 난다. 회색조 렌더
+   한 장을 hard-light 로 얹으면 진짜 음영이 그대로 오고 색은 기록마다 달라진다.
+   렌더의 알약 안쪽 평균 밝기를 128 로 맞춰 두었기 때문에 색이 뜨지도 죽지도 않는다. */
+const dropStyle = css`
+  ${slotStyle};
+  background: var(--drop-color);
+  box-shadow: 0 0.6rem 1.1rem -0.4rem
+    oklch(from var(--drop-color) calc(l - 0.25) calc(c * 0.9) h / 0.45);
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: url('/capsule-shade.png') center / 100% 100% no-repeat;
+    mix-blend-mode: hard-light;
+  }
 `;

@@ -10,6 +10,7 @@ import type WebViewInstance from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes";
 import { BACKGROUND } from "../theme";
+import LoadingCapsule from "./LoadingCapsule";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
 import type { HapticStyle } from "../utils/bridge";
@@ -58,6 +59,8 @@ export default function AppWebView({ path }: { path: string }) {
         style={styles.webview}
         onMessage={onMessage}
         injectedJavaScriptBeforeContentLoaded={insetVariablesScript(insets)}
+        startInLoadingState
+        renderLoading={() => <LoadingCapsule />}
         contentInsetAdjustmentBehavior="never"
         webviewDebuggingEnabled={__DEV__}
         scalesPageToFit={false}

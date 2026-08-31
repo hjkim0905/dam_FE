@@ -30,6 +30,7 @@ export default {
     plugins: [
       "expo-router",
       "expo-splash-screen",
+      "expo-image",
       [
         "expo-build-properties",
         {

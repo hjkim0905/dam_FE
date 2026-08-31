@@ -1,7 +1,9 @@
 import { useCallback, useRef } from "react";
 import type { ForwardRefExoticComponent, RefAttributes } from "react";
 import { StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
+import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import WebViewBase from "react-native-webview";
 import type WebViewInstance from "react-native-webview";
@@ -9,6 +11,7 @@ import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes";
 import { BACKGROUND } from "../theme";
 import { decodeCommand } from "../utils/bridge";
+import { insetVariablesScript } from "../utils/insets";
 import type { HapticStyle } from "../utils/bridge";
 
 const WebView = WebViewBase as unknown as ForwardRefExoticComponent<
@@ -26,6 +29,7 @@ const PLAY_HAPTIC: Record<HapticStyle, () => Promise<void>> = {
 
 export default function AppWebView({ path }: { path: string }) {
   const webViewRef = useRef<WebViewInstance>(null);
+  const insets = useSafeAreaInsets();
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     const command = decodeCommand(event.nativeEvent.data);
@@ -38,6 +42,14 @@ export default function AppWebView({ path }: { path: string }) {
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
   }, []);
 
+  // 탭마다 WebView 가 따로 살아 있어 화면 상태가 그대로 남는다. 다시 들어왔다는
+  // 사실은 네이티브만 알 수 있으므로 웹에 알려주고, 처리 여부는 각 화면이 정한다.
+  useFocusEffect(
+    useCallback(() => {
+      webViewRef.current?.postMessage(JSON.stringify({ type: "FOCUS" }));
+    }, [])
+  );
+
   return (
     <View style={styles.screen}>
       <WebView
@@ -45,7 +57,9 @@ export default function AppWebView({ path }: { path: string }) {
         source={{ uri: `${WEB_URL}${path}` }}
         style={styles.webview}
         onMessage={onMessage}
+        injectedJavaScriptBeforeContentLoaded={insetVariablesScript(insets)}
         contentInsetAdjustmentBehavior="never"
+        webviewDebuggingEnabled={__DEV__}
         scalesPageToFit={false}
         bounces={false}
         showsVerticalScrollIndicator={false}

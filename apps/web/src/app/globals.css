@@ -24,7 +24,8 @@
    좌우는 세로 고정(app.config.js 의 orientation)인 동안 항상 0 이라 넣지 않는다. */
 #screen {
   height: 100%;
-  padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom);
+  padding: var(--inset-top, env(safe-area-inset-top)) 0
+    var(--inset-bottom, env(safe-area-inset-bottom));
 }
 
 *,

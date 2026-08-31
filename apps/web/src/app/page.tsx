@@ -3,8 +3,8 @@
 
 import { css } from '@emotion/react';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import { requestHaptic } from '@/lib/bridge';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
 import { entriesInMonth, monthKeyOf, toDateKey } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
@@ -25,14 +25,25 @@ export default function Home() {
   const capturedToday = thisMonth.some((e) => e.date === today);
   const slots = capturedToday ? thisMonth.length : thisMonth.length + 1;
 
-  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 끝으로
-  // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
-  useEffect(() => {
+  const showToday = useCallback(() => {
     const strip = stripRef.current;
     if (!strip || slots === 0) return;
     strip.scrollLeft = (slots - 1) * pitchOf();
     setCentered(slots - 1);
   }, [slots]);
+
+  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 끝으로
+  // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
+  useEffect(showToday, [showToday]);
+
+  // 탭마다 WebView 가 따로 살아 있어서 다른 탭에 다녀와도 스크롤이 그대로 남는다.
+  useEffect(
+    () =>
+      subscribeToNative((message) => {
+        if (message.type === 'FOCUS') showToday();
+      }),
+    [showToday]
+  );
 
   const pitchOf = () =>
     (DROP_WIDTH_REM + DROP_GAP_REM) *

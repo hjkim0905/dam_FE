@@ -32,3 +32,16 @@ test('fitSize 는 긴 변을 한도에 맞춰 비율대로 줄인다', () => {
 test('fitSize 는 한도보다 작은 사진을 키우지 않는다', () => {
   assert.deepEqual(fitSize({ width: 300, height: 200 }, 800), { width: 300, height: 200 });
 });
+
+test('fitSize 는 width/height 가 getter 로만 있는 값도 읽는다', () => {
+  const bitmapLike = Object.create({
+    get width() {
+      return 300;
+    },
+    get height() {
+      return 200;
+    },
+  }) as { width: number; height: number };
+
+  assert.deepEqual(fitSize(bitmapLike, 800), { width: 300, height: 200 });
+});

@@ -14,13 +14,15 @@ export function coverRect(image: Size, box: Size): Rect {
   return { x: 0, y: (box.height - height) / 2, width: box.width, height };
 }
 
+/** ImageBitmap 은 width/height 가 프로토타입 getter라 spread 로는 값이 빠진다. */
 export function fitSize(image: Size, max: number): Size {
-  const longest = Math.max(image.width, image.height);
-  if (longest <= max) return { ...image };
+  const { width, height } = image;
+  const longest = Math.max(width, height);
+  if (longest <= max) return { width, height };
 
   const scale = max / longest;
   return {
-    width: Math.round(image.width * scale),
-    height: Math.round(image.height * scale),
+    width: Math.round(width * scale),
+    height: Math.round(height * scale),
   };
 }

@@ -70,7 +70,7 @@ export default function Home() {
       <header
         css={css`
           position: absolute;
-          top: 3rem;
+          top: 4.5rem;
           left: var(--space-edge);
         `}
       >

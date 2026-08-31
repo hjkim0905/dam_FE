@@ -105,7 +105,7 @@ export default function Record() {
         display: flex;
         height: 100%;
         flex-direction: column;
-        padding: 3rem var(--space-edge) 0;
+        padding: 4.5rem var(--space-edge) 0;
       `}
     >
       {photo ? (

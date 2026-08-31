@@ -6,6 +6,13 @@
   --color-muted: oklch(60% 0 0);
   --color-faint: oklch(88% 0 0);
 
+  /* 로고에서 그대로 뽑은 네 색. 보풀 테두리가 이 색으로 물든다.
+     배경이 아니라 테두리에만 쓴다 — 담은 색과 경쟁하면 안 된다. */
+  --fuzz-sage: #c0c09b;
+  --fuzz-coral: #ecab84;
+  --fuzz-amber: #e5b677;
+  --fuzz-haze: #85969f;
+
   --space-edge: 2rem;
 
   --radius-card: 2rem;

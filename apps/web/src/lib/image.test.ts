@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { coverRect, fitSize } from './image';
+import { coverRect, fitSize, zoomRect } from './image';
 
 test('coverRect 는 가로가 넓은 사진의 좌우를 잘라낸다', () => {
   assert.deepEqual(coverRect({ width: 200, height: 100 }, { width: 100, height: 100 }), {
@@ -44,4 +44,16 @@ test('fitSize 는 width/height 가 getter 로만 있는 값도 읽는다', () =>
   }) as { width: number; height: number };
 
   assert.deepEqual(fitSize(bitmapLike, 800), { width: 300, height: 200 });
+});
+
+test('zoomRect 는 집는 점을 가운데 두고 배율만큼 좁게 본다', () => {
+  assert.deepEqual(zoomRect({ x: 50, y: 50 }, 84, 3), {
+    x: 36, y: 36, width: 28, height: 28,
+  });
+});
+
+test('zoomRect 는 가장자리에서도 구간을 옮기지 않는다', () => {
+  assert.deepEqual(zoomRect({ x: 0, y: 0 }, 84, 3), {
+    x: -14, y: -14, width: 28, height: 28,
+  });
 });

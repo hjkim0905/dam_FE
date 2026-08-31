@@ -26,3 +26,13 @@ export function fitSize(image: Size, max: number): Size {
     height: Math.round(height * scale),
   };
 }
+
+/** 돋보기가 떠올 원본 구간. 집는 점이 가운데 오고, 배율이 높을수록 좁게 본다. */
+export function zoomRect(
+  center: { x: number; y: number },
+  size: number,
+  zoom: number
+): Rect {
+  const span = size / zoom;
+  return { x: center.x - span / 2, y: center.y - span / 2, width: span, height: span };
+}

@@ -9,12 +9,17 @@ import { requestHaptic } from '@/lib/bridge';
 import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
 import { toDateKey, upsertEntry } from '@/lib/entries';
 import { loadEntries, saveEntries } from '@/lib/entry-store';
-import { coverRect, fitSize } from '@/lib/image';
+import { coverRect, fitSize, zoomRect } from '@/lib/image';
 import LoadingCapsule from '../loading-capsule';
 
 const MAX_STORED_EDGE = 640;
 const JPEG_QUALITY = 0.6;
 const FALLBACK_COLOR = '#c9c5c1';
+
+/* 84 는 배율 3 으로 나누어떨어져야 확대된 픽셀 경계가 반 칸씩 어긋나지 않는다. */
+const LOUPE_EDGE = 84;
+const LOUPE_ZOOM = 3;
+const LOUPE_LIFT = 76;
 
 function toStoredPhoto(bitmap: ImageBitmap): string {
   const { width, height } = fitSize(bitmap, MAX_STORED_EDGE);
@@ -25,11 +30,46 @@ function toStoredPhoto(bitmap: ImageBitmap): string {
   return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
 }
 
+function drawLoupe(
+  loupe: HTMLCanvasElement | null,
+  source: HTMLCanvasElement | null,
+  at: { x: number; y: number }
+): void {
+  const context = loupe?.getContext('2d');
+  if (!source || !context) return;
+
+  const rect = zoomRect(at, LOUPE_EDGE, LOUPE_ZOOM);
+  context.imageSmoothingEnabled = false;
+  context.clearRect(0, 0, LOUPE_EDGE, LOUPE_EDGE);
+  context.drawImage(
+    source,
+    rect.x,
+    rect.y,
+    rect.width,
+    rect.height,
+    0,
+    0,
+    LOUPE_EDGE,
+    LOUPE_EDGE
+  );
+
+  // 집는 칸의 테두리. 어떤 사진 위에 놓일지 모르므로 팔레트 색이 아니라
+  // 밝은 선과 어두운 선을 겹쳐 어느 쪽에서도 남게 한다.
+  const mid = LOUPE_EDGE / 2;
+  context.lineWidth = 1;
+  context.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+  context.strokeRect(mid - 2.5, mid - 2.5, 5, 5);
+  context.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+  context.strokeRect(mid - 1.5, mid - 1.5, 3, 3);
+}
+
 export default function Record() {
   const router = useRouter();
   const photoRef = useRef<HTMLDivElement>(null);
   const pixelsRef = useRef<ImageData | null>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
+  const sourceRef = useRef<HTMLCanvasElement | null>(null);
+  const loupeRef = useRef<HTMLCanvasElement>(null);
 
   const [photo, setPhoto] = useState('');
   const [color, setColor] = useState(FALLBACK_COLOR);
@@ -57,6 +97,7 @@ export default function Record() {
 
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
     pixelsRef.current = pixels;
+    sourceRef.current = canvas;
     const average = averageColor(pixels.data);
     setColor(average ? rgbToHex(average) : FALLBACK_COLOR);
   }, [photo]);
@@ -75,13 +116,19 @@ export default function Record() {
     if (!box || !pixels) return;
 
     const bounds = box.getBoundingClientRect();
-    const picked = pixelAt(
-      pixels.data,
-      pixels.width,
-      event.clientX - bounds.left,
-      event.clientY - bounds.top
-    );
+    const at = { x: event.clientX - bounds.left, y: event.clientY - bounds.top };
+    const picked = pixelAt(pixels.data, pixels.width, at.x, at.y);
     if (!picked) return;
+
+    // 돋보기는 손가락을 따라 매 프레임 움직인다. 상태로 올리면 문지르는 내내
+    // 리렌더가 걸려 따라오는 게 늦는다. 여기서만 직접 그린다.
+    drawLoupe(loupeRef.current, sourceRef.current, at);
+    // 사진 위쪽을 문지를 때 화면 밖으로 나가지 않게 붙잡는다.
+    const lifted = Math.max(LOUPE_EDGE, event.clientY - LOUPE_LIFT);
+    loupeRef.current?.style.setProperty(
+      'transform',
+      `translate(${event.clientX}px, ${lifted}px) translate(-50%, -50%)`
+    );
 
     const next = rgbToHex(picked);
     setColor((current) => {
@@ -126,23 +173,12 @@ export default function Record() {
             onPointerMove={(e) => picking && pick(e)}
             onPointerUp={() => setPicking(false)}
             onPointerCancel={() => setPicking(false)}
-            css={css`
-              position: relative;
-              width: 100%;
-              aspect-ratio: 1;
-              border-radius: var(--radius-card);
-              overflow: hidden;
-              background: var(--color-faint);
-              touch-action: none;
-              animation: rise var(--duration-slow) var(--ease-out-expo) both;
-
-              @keyframes rise {
-                from {
-                  opacity: 0;
-                  transform: scale(0.98);
-                }
-              }
-            `}
+            css={[
+              frameStyle,
+              css`
+                touch-action: none;
+              `,
+            ]}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
@@ -153,67 +189,37 @@ export default function Record() {
                 height: 100%;
                 object-fit: cover;
                 pointer-events: none;
+                animation: settle var(--duration-slow) var(--ease-out-expo) both;
+
+                @keyframes settle {
+                  from {
+                    opacity: 0;
+                    transform: scale(1.02);
+                  }
+                }
               `}
             />
           </div>
 
-          <p
-            css={css`
-              margin: 1.25rem 0 0;
-              text-align: center;
-              font-size: 0.8125rem;
-              letter-spacing: 0.02em;
-              color: var(--color-muted);
-              transition: opacity var(--duration-fast);
-            `}
-            style={{ opacity: picking ? 0 : 1 }}
-          >
+          <canvas
+            ref={loupeRef}
+            width={LOUPE_EDGE}
+            height={LOUPE_EDGE}
+            aria-hidden
+            css={loupeStyle}
+            style={{ opacity: picking ? 1 : 0 }}
+          />
+
+          <p css={hintStyle} style={{ opacity: picking ? 0 : 1 }}>
             사진을 문질러 오늘의 색을 고르세요
           </p>
 
-          <div
-            css={css`
-              display: flex;
-              align-items: center;
-              gap: 1rem;
-              margin-top: auto;
-              padding: 1.5rem 0;
-            `}
-          >
-            <div
-              css={css`
-                flex: 0 0 auto;
-                width: 3.5rem;
-                height: 5rem;
-                border-radius: var(--radius-pill);
-                transition: background-color var(--duration-fast) linear;
-              `}
-              style={{ backgroundColor: color }}
-            />
-            <input
-              value={memo}
-              onChange={(e) => setMemo(e.target.value)}
-              placeholder="이 색에 담을 한 줄"
-              css={css`
-                flex: 1;
-                min-width: 0;
-                padding: 1rem 0;
-                border: none;
-                border-bottom: 0.0625rem solid var(--color-faint);
-                background: none;
-                color: inherit;
-                font: inherit;
-                outline: none;
-
-                &::placeholder {
-                  color: var(--color-faint);
-                }
-                &:focus {
-                  border-bottom-color: var(--color-muted);
-                }
-              `}
-            />
-          </div>
+          <input
+            value={memo}
+            onChange={(e) => setMemo(e.target.value)}
+            placeholder="이 색에 담을 한 줄"
+            css={memoStyle}
+          />
 
           <button
             type="button"
@@ -238,68 +244,43 @@ export default function Record() {
           </button>
         </>
       ) : (
-        <label
-          css={css`
-            display: flex;
-            flex: 1;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1.5rem;
-            padding-bottom: 6rem;
-          `}
-        >
-          <span
-            css={css`
-              width: 6rem;
-              height: 8rem;
-              border: 0.125rem dashed var(--color-faint);
-              border-radius: var(--radius-pill);
-            `}
-          />
-          <span
-            css={css`
-              font-size: 1.0625rem;
-              font-weight: 400;
-              letter-spacing: -0.01em;
-            `}
-          >
-            오늘의 사진 한 장
-          </span>
-          <span
-            css={css`
-              margin-top: -1rem;
-              font-size: 0.8125rem;
-              color: var(--color-muted);
-            `}
-          >
-            찍거나 앨범에서 고르세요
-          </span>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              if (!file) return;
+        <>
+          <label css={[frameStyle, pickTargetStyle]}>
+            <span
+              css={css`
+                font-size: 1.75rem;
+                font-weight: 400;
+                letter-spacing: -0.01em;
+              `}
+            >
+              오늘의 사진 한 장
+            </span>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
 
-              setError('');
-              setReading(true);
-              try {
-                const bitmap = await createImageBitmap(file);
-                bitmapRef.current?.close();
-                bitmapRef.current = bitmap;
-                setPhoto(toStoredPhoto(bitmap));
-              } catch {
-                setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
-              } finally {
-                setReading(false);
-              }
-            }}
-            css={css`
-              display: none;
-            `}
-          />
-        </label>
+                setError('');
+                setReading(true);
+                try {
+                  const bitmap = await createImageBitmap(file);
+                  bitmapRef.current?.close();
+                  bitmapRef.current = bitmap;
+                  setPhoto(toStoredPhoto(bitmap));
+                } catch {
+                  setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
+                } finally {
+                  setReading(false);
+                }
+              }}
+              css={hiddenInputStyle}
+            />
+          </label>
+
+          <p css={hintStyle}>찍거나 앨범에서 고르세요</p>
+        </>
       )}
 
       {error && (
@@ -307,8 +288,8 @@ export default function Record() {
           css={css`
             margin: 0 0 1rem;
             text-align: center;
-            font-size: 0.8125rem;
-            color: oklch(55% 0.18 25);
+            font-size: 0.875rem;
+            color: var(--color-alert);
           `}
         >
           {error}
@@ -337,3 +318,100 @@ export default function Record() {
     </main>
   );
 }
+
+/* 사진이 들어올 자리. 빈 상태도 같은 틀을 그대로 쓰므로, 사진을 고르는 순간
+   화면이 다시 짜이지 않고 그 자리에 채워진다. */
+const frameStyle = css`
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  background: var(--color-faint);
+`;
+
+/* 빈 면은 눌리는 것으로 안 읽힌다. 위가 짙은 안쪽 그늘을 넣어 무언가를 넣는 홈으로
+   보이게 한다. 위가 짙은 건 빛이 위에서 오기 때문이고, 방울 음영과 같은 방향이다. */
+const pickTargetStyle = css`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: inset 0 0.125rem 0.75rem
+    oklch(from var(--color-faint) calc(l - 0.14) c h);
+  transition: transform var(--duration-fast) var(--ease-out-expo),
+    background-color var(--duration-fast) linear;
+
+  @media (hover: hover) {
+    &:hover {
+      background: oklch(from var(--color-faint) calc(l - 0.03) c h);
+    }
+  }
+
+  &:active {
+    transform: scale(0.985);
+  }
+
+  &:has(input:focus-visible) {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.4rem;
+  }
+`;
+
+/* display: none 이면 접근성 트리에서도 빠져 보이스오버가 앨범을 열 수 없다. */
+const hiddenInputStyle = css`
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  opacity: 0;
+`;
+
+const hintStyle = css`
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.875rem;
+  letter-spacing: 0.02em;
+  color: var(--color-muted);
+  transition: opacity var(--duration-fast);
+`;
+
+const memoStyle = css`
+  margin: auto 0 1.5rem;
+  padding: 1rem 0;
+  border: none;
+  border-bottom: 0.0625rem solid var(--color-faint);
+  background: none;
+  color: inherit;
+  font: inherit;
+  outline: none;
+  transition: border-color var(--duration-fast) linear;
+
+  &::placeholder {
+    color: var(--color-muted);
+  }
+
+  @media (hover: hover) {
+    &:hover {
+      border-bottom-color: var(--color-muted);
+    }
+  }
+
+  &:focus {
+    border-bottom-color: var(--color-foreground);
+  }
+`;
+
+const loupeStyle = css`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 5.25rem;
+  height: 5.25rem;
+  border: 0.1875rem solid var(--color-background);
+  border-radius: var(--radius-pill);
+  box-shadow: 0 0.4rem 1rem -0.2rem oklch(from var(--color-foreground) l c h / 0.3);
+  background: var(--color-faint);
+  image-rendering: pixelated;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) linear;
+`;

@@ -127,3 +127,24 @@ test('entriesInMonth 는 저장된 순서와 무관하게 날짜순으로 준다
     ['2026-09-03', '2026-09-14', '2026-09-22']
   );
 });
+
+test('upsertEntry 는 같은 날 상대가 담은 것을 지우지 않는다', () => {
+  const before = [entry('2026-09-05', '#aaa', 'you')];
+  const after = upsertEntry(before, entry('2026-09-05', '#bbb', 'me'));
+
+  assert.deepEqual(
+    after.map((e) => `${e.author}:${e.color}`),
+    ['you:#aaa', 'me:#bbb']
+  );
+});
+
+test('upsertEntry 는 내가 그날 다시 담으면 내 것만 바꾼다', () => {
+  const before = [entry('2026-09-05', '#aaa', 'you'), entry('2026-09-05', '#bbb', 'me')];
+  const after = upsertEntry(before, entry('2026-09-05', '#ccc', 'me'));
+
+  assert.equal(after.length, 2);
+  assert.deepEqual(
+    after.map((e) => `${e.author}:${e.color}`).sort(),
+    ['me:#ccc', 'you:#aaa']
+  );
+});

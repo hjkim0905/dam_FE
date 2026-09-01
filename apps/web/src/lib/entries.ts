@@ -46,8 +46,11 @@ export function entriesInMonth(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
+/** 하루에 한 사람당 하나다. 날짜만 보고 지우면 같은 날 상대가 담은 것까지 사라진다. */
 export function upsertEntry(entries: readonly Entry[], entry: Entry): Entry[] {
-  const others = entries.filter((e) => e.date !== entry.date);
+  const others = entries.filter(
+    (e) => e.date !== entry.date || e.author !== entry.author
+  );
   return [...others, entry].sort((a, b) => a.date.localeCompare(b.date));
 }
 

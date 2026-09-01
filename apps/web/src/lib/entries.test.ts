@@ -8,6 +8,7 @@ import {
   entriesInMonth,
   entriesOn,
   monthDayLabel,
+  monthLabel,
   monthKeyOf,
   toDateKey,
   upsertEntry,
@@ -75,4 +76,9 @@ test('entriesInMonth 는 그 달의 기록만 고른다', () => {
 test('monthDayLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
   assert.equal(monthDayLabel('2026-08-01'), '8월 1일');
   assert.equal(monthDayLabel('2026-12-25'), '12월 25일');
+});
+
+test('monthLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
+  assert.equal(monthLabel('2026-08-01'), '8월');
+  assert.equal(monthLabel('2026-12-25'), '12월');
 });

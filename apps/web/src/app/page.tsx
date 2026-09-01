@@ -7,7 +7,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
-import { entriesInMonth, monthDayLabel, monthKeyOf, toDateKey } from '@/lib/entries';
+import {
+  entriesInMonth,
+  monthDayLabel,
+  monthKeyOf,
+  monthLabel,
+  toDateKey,
+} from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
 
@@ -39,11 +45,16 @@ export default function Home() {
   // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
   useEffect(showToday, [showToday]);
 
-  // 탭마다 WebView 가 따로 살아 있어서 다른 탭에 다녀와도 스크롤이 그대로 남는다.
+  // 탭마다 WebView 가 따로 살아 있어서, 다시 들어와도 떠날 때 그대로다. 멈추는 건
+  // 스크롤만이 아니다. 오늘 날짜는 렌더 중에 읽으므로 리렌더가 없으면 자정을 넘겨도
+  // 어제에 머문다. 기록을 다시 읽으면 매번 새 배열이라 리렌더가 걸리고, 그 김에
+  // 오늘이 다시 계산되어 빈 자리가 생긴다. 나중에 상대의 기록이 들어오는 길이기도 하다.
   useEffect(
     () =>
       subscribeToNative((message) => {
-        if (message.type === 'FOCUS') showToday();
+        if (message.type !== 'FOCUS') return;
+        setEntries(loadEntries());
+        showToday();
       }),
     [showToday]
   );
@@ -85,7 +96,7 @@ export default function Home() {
             letter-spacing: -0.02em;
           `}
         >
-          {new Date().getMonth() + 1}월의 색
+          {monthLabel(today)}의 색
         </h1>
         <p
           css={css`

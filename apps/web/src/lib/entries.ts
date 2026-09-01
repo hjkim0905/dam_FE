@@ -39,3 +39,7 @@ export function upsertEntry(entries: readonly Entry[], entry: Entry): Entry[] {
   const others = entries.filter((e) => e.date !== entry.date);
   return [...others, entry].sort((a, b) => a.date.localeCompare(b.date));
 }
+
+export function monthLabel(dateKey: string): string {
+  return `${Number(monthKeyOf(dateKey).slice(5))}월`;
+}

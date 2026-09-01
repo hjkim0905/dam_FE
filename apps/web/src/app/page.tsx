@@ -3,7 +3,7 @@
 
 import { css } from '@emotion/react';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex, stripSlots } from '@/lib/carousel';
@@ -21,16 +21,23 @@ import { loadEntries } from '@/lib/entry-store';
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
 
+/* 자리를 잡는 일은 그려지기 전에 끝나야 한다. useEffect 는 페인트 뒤라 옮기는 게
+   눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
+const useBeforePaint =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 export default function Home() {
   const stripRef = useRef<HTMLDivElement>(null);
-  const [entries, setEntries] = useState<Entry[]>([]);
+  // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
+  // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
+  const [entries, setEntries] = useState<Entry[] | null>(null);
   const [centered, setCentered] = useState(0);
 
   useEffect(() => setEntries(loadEntries()), []);
 
   const today = toDateKey(new Date());
   // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
-  const thisMonth = entriesInMonth(entriesFrom(entries, 'mine'), monthKeyOf(today));
+  const thisMonth = entriesInMonth(entriesFrom(entries ?? [], 'mine'), monthKeyOf(today));
   const capturedToday = thisMonth.some((e) => e.date === today);
   const { slots, todayIndex } = stripSlots(
     thisMonth.map((e) => e.date),
@@ -55,7 +62,7 @@ export default function Home() {
   //
   // 다음 프레임에 한 번 더 부르는 이유: 스냅 컨테이너는 자식이 늘어나면 레이아웃 뒤에
   // 스냅을 다시 잡는데, 그때 방금 옮겨둔 자리가 첫 칸으로 되돌아가는 엔진이 있다.
-  useEffect(() => {
+  useBeforePaint(() => {
     showToday();
     const frame = requestAnimationFrame(showToday);
     return () => cancelAnimationFrame(frame);
@@ -121,7 +128,7 @@ export default function Home() {
             color: var(--color-muted);
           `}
         >
-          {thisMonth.length}방울의 기록
+          {entries === null ? '\u00a0' : `${thisMonth.length}방울의 기록`}
         </p>
       </header>
 
@@ -156,7 +163,8 @@ export default function Home() {
           }
         `}
       >
-        {thisMonth.map((entry, index) => (
+        {entries !== null &&
+          thisMonth.map((entry, index) => (
           <button
             key={entry.date}
             type="button"
@@ -172,9 +180,9 @@ export default function Home() {
               } as CSSProperties
             }
           />
-        ))}
+          ))}
 
-        {!capturedToday && (
+        {entries !== null && !capturedToday && (
           <Link
             href="/record"
             aria-label="오늘의 색 담기"

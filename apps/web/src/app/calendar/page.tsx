@@ -55,9 +55,7 @@ function Day({ dateKey, sides }: { dateKey: string; sides: Sides }) {
           />
         )}
       </div>
-      <small css={[numberStyle, shots.length > 0 && filledNumberStyle]}>
-        {Number(dateKey.slice(8))}
-      </small>
+      <small css={numberStyle}>{Number(dateKey.slice(8))}</small>
     </div>
   );
 }
@@ -187,7 +185,7 @@ const weekdayStyle = css`
   span {
     text-align: center;
     font-size: 0.875rem;
-    color: var(--color-faint);
+    color: var(--color-foreground);
   }
 `;
 
@@ -253,14 +251,12 @@ const markStyle = css`
   );
 `;
 
+/* 담은 날과 아닌 날을 숫자로 나누지 않는다. 사진이 이미 그 일을 하고 있고,
+   갈라 두려면 한쪽을 --color-faint 로 내려야 하는데 글자로 쓰기엔 대비가 모자란다. */
 const numberStyle = css`
   flex: 0 0 auto;
   margin-top: 0.3125rem;
   font-size: 0.875rem;
   line-height: 1.125rem;
-  color: var(--color-faint);
-`;
-
-const filledNumberStyle = css`
   color: var(--color-muted);
 `;

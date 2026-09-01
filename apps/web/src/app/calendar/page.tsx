@@ -88,39 +88,39 @@ export default function CalendarScreen() {
 
       {entries === null ? null : (
         <>
-      {together && (
-        <nav css={segmentStyle} aria-label="누구의 기록을 볼지">
-          {VIEWS.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={view === value}
-              onClick={() => setView(value)}
-              css={[choiceStyle, view === value && chosenStyle]}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-      )}
+          {together && (
+            <nav css={segmentStyle} aria-label="누구의 기록을 볼지">
+              {VIEWS.map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  aria-pressed={view === value}
+                  onClick={() => setView(value)}
+                  css={[choiceStyle, view === value && chosenStyle]}
+                >
+                  {label}
+                </button>
+              ))}
+            </nav>
+          )}
 
-      <div css={weekdayStyle} aria-hidden>
-        {WEEKDAYS.map((day) => (
-          <span key={day}>{day}</span>
-        ))}
-      </div>
+          <div css={weekdayStyle} aria-hidden>
+            {WEEKDAYS.map((day) => (
+              <span key={day}>{day}</span>
+            ))}
+          </div>
 
-      <div css={gridStyle}>
-        {monthCells(monthKey).map((dateKey, index) =>
-          dateKey ? (
-            <Day key={dateKey} dateKey={dateKey} sides={sidesOn(shown, dateKey)} />
-          ) : (
-            // 1일 앞의 빈 자리. 날짜가 없으니 키로 쓸 것도 자리 순서뿐이다.
-            // eslint-disable-next-line react/no-array-index-key
-            <div key={`lead-${index}`} />
-          )
-        )}
-      </div>
+          <div css={gridStyle}>
+            {monthCells(monthKey).map((dateKey, index) =>
+              dateKey ? (
+                <Day key={dateKey} dateKey={dateKey} sides={sidesOn(shown, dateKey)} />
+              ) : (
+                // 1일 앞의 빈 자리. 날짜가 없으니 키로 쓸 것도 자리 순서뿐이다.
+                // eslint-disable-next-line react/no-array-index-key
+                <div key={`lead-${index}`} />
+              )
+            )}
+          </div>
         </>
       )}
     </main>

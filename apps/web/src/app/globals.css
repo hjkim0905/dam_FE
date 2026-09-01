@@ -14,6 +14,8 @@
   --space-edge: 3.5rem;
 
   --radius-card: 2rem;
+  /* 달력 한 칸의 사진. --radius-card 는 담기 화면의 큰 틀용이라 여기선 과하다. */
+  --radius-thumb: 0.4375rem;
   --radius-pill: 999rem;
 
   --duration-fast: 0.15s;

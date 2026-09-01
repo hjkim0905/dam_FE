@@ -63,7 +63,9 @@ function Day({ dateKey, sides }: { dateKey: string; sides: Sides }) {
 }
 
 export default function CalendarScreen() {
-  const [entries, setEntries] = useState<Entry[]>([]);
+  // 홈과 같은 이유로 '아직 모른다' 를 빈 배열과 구분한다. 빈 배열로 두면 첫 페인트에
+  // 사진 없는 달이 그려졌다가 채워지고, 필터가 뒤늦게 생기며 격자가 아래로 밀린다.
+  const [entries, setEntries] = useState<Entry[] | null>(null);
   const [view, setView] = useState<Company>('both');
 
   useEffect(() => setEntries(loadEntries()), []);
@@ -77,13 +79,15 @@ export default function CalendarScreen() {
   );
 
   const monthKey = monthKeyOf(toDateKey(new Date()));
-  const together = hasCompany(entries);
-  const shown = entriesFrom(entries, together ? view : 'both');
+  const together = hasCompany(entries ?? []);
+  const shown = entriesFrom(entries ?? [], together ? view : 'both');
 
   return (
     <main css={screenStyle}>
       <h1 css={titleStyle}>{monthTitle(monthKey)}</h1>
 
+      {entries === null ? null : (
+        <>
       {together && (
         <nav css={segmentStyle} aria-label="누구의 기록을 볼지">
           {VIEWS.map(({ value, label }) => (
@@ -117,6 +121,8 @@ export default function CalendarScreen() {
           )
         )}
       </div>
+        </>
+      )}
     </main>
   );
 }

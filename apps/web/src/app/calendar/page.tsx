@@ -55,7 +55,9 @@ function Day({ dateKey, sides }: { dateKey: string; sides: Sides }) {
           />
         )}
       </div>
-      <small css={numberStyle}>{Number(dateKey.slice(8))}</small>
+      <small css={[numberStyle, shots.length > 0 && filledNumberStyle]}>
+        {Number(dateKey.slice(8))}
+      </small>
     </div>
   );
 }
@@ -251,12 +253,16 @@ const markStyle = css`
   );
 `;
 
-/* 담은 날과 아닌 날을 숫자로 나누지 않는다. 사진이 이미 그 일을 하고 있고,
-   갈라 두려면 한쪽을 --color-faint 로 내려야 하는데 글자로 쓰기엔 대비가 모자란다. */
+/* 담지 않은 날이 흐린 쪽이다. 다만 --color-faint 까지 내리지는 않는다.
+   면과 선에 쓰는 색이라 글자로 놓으면 대비가 1.4:1 이라 읽히지 않는다. */
 const numberStyle = css`
   flex: 0 0 auto;
   margin-top: 0.3125rem;
   font-size: 0.875rem;
   line-height: 1.125rem;
   color: var(--color-muted);
+`;
+
+const filledNumberStyle = css`
+  color: var(--color-foreground);
 `;

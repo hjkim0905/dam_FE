@@ -118,3 +118,12 @@ test('sidesOn 은 한쪽만 담은 날에 나머지를 비운다', () => {
   assert.equal(only.mine?.color, '#a');
   assert.equal(only.theirs, null);
 });
+
+test('entriesInMonth 는 저장된 순서와 무관하게 날짜순으로 준다', () => {
+  const jumbled = [entry('2026-09-22'), entry('2026-09-03'), entry('2026-09-14')];
+
+  assert.deepEqual(
+    entriesInMonth(jumbled, '2026-09').map((e) => e.date),
+    ['2026-09-03', '2026-09-14', '2026-09-22']
+  );
+});

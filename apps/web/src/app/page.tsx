@@ -6,8 +6,9 @@ import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
-import { snappedIndex } from '@/lib/carousel';
+import { snappedIndex, stripSlots } from '@/lib/carousel';
 import {
+  entriesFrom,
   entriesInMonth,
   monthDayLabel,
   monthKeyOf,
@@ -28,22 +29,37 @@ export default function Home() {
   useEffect(() => setEntries(loadEntries()), []);
 
   const today = toDateKey(new Date());
-  const thisMonth = entriesInMonth(entries, monthKeyOf(today));
+  // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
+  const thisMonth = entriesInMonth(entriesFrom(entries, 'mine'), monthKeyOf(today));
   const capturedToday = thisMonth.some((e) => e.date === today);
-  const slots = capturedToday ? thisMonth.length : thisMonth.length + 1;
+  const { slots, todayIndex } = stripSlots(
+    thisMonth.map((e) => e.date),
+    today
+  );
 
   const showToday = useCallback(() => {
     const strip = stripRef.current;
-    if (!strip || slots === 0) return;
-    // 방울을 눌러 가운데로 데려오는 길이 부드러워야 해서 스트립이 smooth 다.
-    // 오늘로 돌려놓는 건 보이면 안 되므로 이 호출만 즉시로 되돌린다.
-    strip.scrollTo({ left: (slots - 1) * pitchOf(), behavior: 'instant' });
-    setCentered(slots - 1);
-  }, [slots]);
+    const target = strip?.children[todayIndex];
+    if (!strip || !target) return;
 
-  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 끝으로
-  // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
-  useEffect(showToday, [showToday]);
+    // 좌표로 계산하면 방울 너비·루트 폰트 크기·좌우 패딩이 전부 예상대로여야 맞는다.
+    // 스트립의 smooth 는 방울을 눌러 데려올 때의 것이라, 돌려놓을 때만 끈다.
+    strip.style.scrollBehavior = 'auto';
+    target.scrollIntoView({ inline: 'center', block: 'nearest' });
+    strip.style.scrollBehavior = '';
+    setCentered(todayIndex);
+  }, [slots, todayIndex]);
+
+  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 오늘로
+  // 보내면 볼 것이 없던 자리라 튀어 보이지 않는다.
+  //
+  // 다음 프레임에 한 번 더 부르는 이유: 스냅 컨테이너는 자식이 늘어나면 레이아웃 뒤에
+  // 스냅을 다시 잡는데, 그때 방금 옮겨둔 자리가 첫 칸으로 되돌아가는 엔진이 있다.
+  useEffect(() => {
+    showToday();
+    const frame = requestAnimationFrame(showToday);
+    return () => cancelAnimationFrame(frame);
+  }, [showToday]);
 
   // 탭마다 WebView 가 따로 살아 있어서, 다시 들어와도 떠날 때 그대로다. 멈추는 건
   // 스크롤만이 아니다. 오늘 날짜는 렌더 중에 읽으므로 리렌더가 없으면 자정을 넘겨도
@@ -117,11 +133,23 @@ export default function Home() {
           flex: 1;
           align-items: center;
           gap: ${DROP_GAP_REM}rem;
-          padding: 0 calc(50vw - ${DROP_WIDTH_REM / 2}rem);
           overflow-x: auto;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           scrollbar-width: none;
+
+          /* 첫 방울과 마지막 방울도 가운데 설 수 있으려면 양끝에 화면 절반만큼의
+             여백이 있어야 한다. 패딩으로 주면 WebKit 이 끝쪽 패딩을 scrollWidth 에
+             넣지 않아 넘치는 폭이 사라지고 스트립이 아예 스크롤되지 않는다.
+             자리를 차지하는 요소로 두면 그 계산에 반드시 들어간다.
+             gap 이 이 요소에도 걸리므로 그만큼 빼야 방울이 정확히 가운데 선다. */
+          &::before,
+          &::after {
+            content: '';
+            flex: 0 0 calc(
+              50vw - ${DROP_WIDTH_REM / 2}rem - ${DROP_GAP_REM}rem
+            );
+          }
 
           &::-webkit-scrollbar {
             display: none;

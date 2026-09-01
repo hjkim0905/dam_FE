@@ -36,11 +36,14 @@ export function entriesOn(
   return entries.filter((e) => e.date === dateKey);
 }
 
+/** 저장된 순서를 믿지 않는다. 화면은 왼쪽에서 오른쪽으로 시간이 흐른다고 읽는다. */
 export function entriesInMonth(
   entries: readonly Entry[],
   monthKey: string
 ): Entry[] {
-  return entries.filter((e) => monthKeyOf(e.date) === monthKey);
+  return entries
+    .filter((e) => monthKeyOf(e.date) === monthKey)
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function upsertEntry(entries: readonly Entry[], entry: Entry): Entry[] {

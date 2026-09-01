@@ -1,3 +1,4 @@
+import { ME } from './entries';
 import type { Entry } from './entries';
 
 /**
@@ -6,15 +7,26 @@ import type { Entry } from './entries';
  */
 const STORAGE_KEY = 'dam.entries';
 
-function isEntry(value: unknown): value is Entry {
-  if (typeof value !== 'object' || value === null) return false;
-  const { date, color, imageUrl, memo } = value as Record<string, unknown>;
-  return (
-    typeof date === 'string' &&
-    typeof color === 'string' &&
-    typeof imageUrl === 'string' &&
-    typeof memo === 'string'
-  );
+function toEntry(value: unknown): Entry | null {
+  if (typeof value !== 'object' || value === null) return null;
+  const { date, color, imageUrl, memo, author } = value as Record<string, unknown>;
+  if (
+    typeof date !== 'string' ||
+    typeof color !== 'string' ||
+    typeof imageUrl !== 'string' ||
+    typeof memo !== 'string'
+  ) {
+    return null;
+  }
+
+  // 작성자를 적기 전에 저장된 기록이 남아 있다. 없다고 버리면 그동안 담은 것이 사라진다.
+  return {
+    date,
+    color,
+    imageUrl,
+    memo,
+    author: typeof author === 'string' ? author : ME,
+  };
 }
 
 export function parseEntries(raw: string | null): Entry[] {
@@ -22,7 +34,8 @@ export function parseEntries(raw: string | null): Entry[] {
 
   try {
     const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter(isEntry) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map(toEntry).filter((e): e is Entry => e !== null);
   } catch {
     return [];
   }

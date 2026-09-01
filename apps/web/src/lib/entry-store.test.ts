@@ -6,7 +6,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { parseEntries, serializeEntries } from './entry-store';
 
-const valid = { date: '2026-08-18', color: '#8a9a7b', imageUrl: '', memo: '' };
+const valid = {
+  date: '2026-08-18',
+  color: '#8a9a7b',
+  imageUrl: '',
+  memo: '',
+  author: 'me',
+};
 
 test('parseEntries 는 올바른 기록을 읽는다', () => {
   assert.deepEqual(parseEntries(JSON.stringify([valid])), [valid]);
@@ -27,7 +33,7 @@ test('parseEntries 는 형태가 어긋난 항목만 버리고 나머지는 살�
   const raw = JSON.stringify([
     valid,
     { date: '2026-08-19' },
-    { date: 1, color: '#fff', imageUrl: '', memo: '' },
+    { date: 1, color: '#fff', imageUrl: '', memo: '', author: 'me' },
     null,
   ]);
 
@@ -36,4 +42,18 @@ test('parseEntries 는 형태가 어긋난 항목만 버리고 나머지는 살�
 
 test('serializeEntries 와 parseEntries 는 서로를 되돌린다', () => {
   assert.deepEqual(parseEntries(serializeEntries([valid])), [valid]);
+});
+
+test('parseEntries 는 작성자를 적기 전 기록을 내 것으로 살린다', () => {
+  const legacy = '[{"date":"2026-08-18","color":"#abcdef","imageUrl":"","memo":"어제"}]';
+
+  assert.deepEqual(parseEntries(legacy), [
+    { date: '2026-08-18', color: '#abcdef', imageUrl: '', memo: '어제', author: 'me' },
+  ]);
+});
+
+test('parseEntries 는 적혀 있는 작성자를 그대로 둔다', () => {
+  const shared = '[{"date":"2026-08-18","color":"#abcdef","imageUrl":"","memo":"","author":"you"}]';
+
+  assert.equal(parseEntries(shared)[0].author, 'you');
 });

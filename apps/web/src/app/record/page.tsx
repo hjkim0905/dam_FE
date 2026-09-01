@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
-import { toDateKey, upsertEntry } from '@/lib/entries';
+import { ME, toDateKey, upsertEntry } from '@/lib/entries';
 import { loadEntries, saveEntries } from '@/lib/entry-store';
 import { coverRect, fitSize, zoomRect } from '@/lib/image';
 import LoadingCapsule from '../loading-capsule';
@@ -138,7 +138,13 @@ export default function Record() {
   }, []);
 
   const commit = () => {
-    const entry = { date: toDateKey(new Date()), color: ink, imageUrl: photo, memo: memo.trim() };
+    const entry = {
+      date: toDateKey(new Date()),
+      color: ink,
+      imageUrl: photo,
+      memo: memo.trim(),
+      author: ME,
+    };
     if (!saveEntries(upsertEntry(loadEntries(), entry))) {
       setInk('');
       setSpread(false);

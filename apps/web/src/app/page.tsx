@@ -5,7 +5,7 @@ import { css } from '@emotion/react';
 import Link from 'next/link';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { requestHaptic, subscribeToNative } from '@/lib/bridge';
+import { openOutside, requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex, stripSlots } from '@/lib/carousel';
 import {
   entriesFrom,
@@ -20,9 +20,21 @@ import {
 } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
+import { forgetEverything } from '@/lib/profile-store';
+import ConfirmSheet from './confirm-sheet';
 import DayDetail from './day-detail';
+import MeSheet from './me-sheet';
 import MonthWheel from './month-wheel';
+import RoomSheet from './room-sheet';
 import Sheet from './sheet';
+
+type MenuAction = 'me' | 'room' | 'privacy' | 'terms' | 'contact' | 'signOut' | 'deleteAccount';
+
+/* 앱 밖 문서라 웹뷰가 아니라 사파리로 나간다. 주소가 바뀌면 여기만 고친다. */
+const DOCUMENTS: Record<'privacy' | 'terms', string> = {
+  privacy: 'https://www.notion.so/dam-privacy',
+  terms: 'https://www.notion.so/dam-terms',
+};
 
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
@@ -41,6 +53,7 @@ export default function Home() {
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
+  const [opened, setOpened] = useState<MenuAction | null>(null);
 
   useEffect(() => setEntries(loadEntries()), []);
 
@@ -88,6 +101,12 @@ export default function Home() {
   useEffect(
     () =>
       subscribeToNative((message) => {
+        if (message.type === 'MENU') {
+          const { action } = (message.payload ?? {}) as { action?: MenuAction };
+          if (action === 'privacy' || action === 'terms') openOutside(DOCUMENTS[action]);
+          else if (action) setOpened(action);
+          return;
+        }
         if (message.type !== 'FOCUS') return;
         setEntries(loadEntries());
         showToday();
@@ -211,6 +230,50 @@ export default function Home() {
           />
         )}
       </section>
+
+      <MeSheet
+        open={opened === 'me'}
+        entries={entries ?? []}
+        onClose={() => setOpened(null)}
+      />
+
+      <RoomSheet
+        open={opened === 'room'}
+        entries={entries ?? []}
+        onClose={() => setOpened(null)}
+      />
+
+      <ConfirmSheet
+        open={opened === 'contact'}
+        title="문의하기"
+        detail="담을 쓰다 막히거나 이상한 곳이 있으면 알려주세요. 메일로 답을 드려요."
+        confirm="메일 보내기"
+        onConfirm={() => setOpened(null)}
+        onClose={() => setOpened(null)}
+      />
+
+      <ConfirmSheet
+        open={opened === 'signOut'}
+        title="로그아웃"
+        detail="담은 기록은 이 기기에 그대로 남아요. 계정이 생기기 전이라 아직 나갈 곳이 없어요."
+        confirm="알겠어요"
+        onConfirm={() => setOpened(null)}
+        onClose={() => setOpened(null)}
+      />
+
+      <ConfirmSheet
+        open={opened === 'deleteAccount'}
+        title="회원탈퇴"
+        detail="지금까지 담은 색과 사진, 메모가 모두 지워져요. 되돌릴 수 없어요."
+        confirm="모두 지우기"
+        destructive
+        onConfirm={() => {
+          forgetEverything();
+          setEntries([]);
+          setOpened(null);
+        }}
+        onClose={() => setOpened(null)}
+      />
 
       <Sheet
         open={pickingMonth}

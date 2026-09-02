@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
 import { useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
+import * as Linking from "expo-linking";
 import WebViewBase from "react-native-webview";
 import type WebViewInstance from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
@@ -42,6 +43,7 @@ export default function AppWebView({ path }: { path: string }) {
       return;
     }
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
+    if (command.type === "OPEN_URL") Linking.openURL(command.url);
   }, []);
 
   // 탭마다 WebView 가 따로 살아 있어 화면 상태가 그대로 남는다. 드나든 사실은

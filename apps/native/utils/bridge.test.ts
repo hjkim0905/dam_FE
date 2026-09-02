@@ -45,3 +45,13 @@ test("decodeCommand는 payload가 규격에 안 맞으면 null을 준다", () =>
   assert.equal(decodeCommand('{"type":"HAPTIC","payload":{"style":"boom"}}'), null);
   assert.equal(decodeCommand('{"type":"HAPTIC","payload":"selection"}'), null);
 });
+
+test("decodeCommand 는 https 링크만 연다", () => {
+  const open = (url: string) =>
+    decodeCommand(JSON.stringify({ type: "OPEN_URL", payload: { url } }));
+
+  assert.deepEqual(open("https://example.com"), { type: "OPEN_URL", url: "https://example.com" });
+  assert.equal(open("http://example.com"), null);
+  assert.equal(open("javascript:alert(1)"), null);
+  assert.equal(open("dam://close"), null);
+});

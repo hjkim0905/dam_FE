@@ -150,19 +150,19 @@ const stageStyle = css`
   padding: 1.5rem 0;
 `;
 
-/* 방울과 같은 비율(2:7)이라 음영 렌더가 늘어나지 않는다. 높이를 남는 자리에 맡기고
-   폭은 비율이 정한다 — 기기가 짧으면 방울도 같이 줄어든다. */
+/* 방울을 눕힌 비율(7:2)이라 음영 렌더가 늘어나지 않는다. 그 렌더는 세로 방울용을
+   시계 방향으로 돌린 것이라 밝은 쪽이 위로 온다 — 누운 알약도 빛을 위에서 받는다. */
 const dropStyle = css`
-  height: 100%;
-  aspect-ratio: 2 / 7;
   position: relative;
+  width: 100%;
+  aspect-ratio: 7 / 2;
   border-radius: var(--radius-pill);
 
   &::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: url('/capsule-shade.png') center / 100% 100% no-repeat;
+    background: url('/capsule-shade-wide.png') center / 100% 100% no-repeat;
     mix-blend-mode: hard-light;
   }
 `;

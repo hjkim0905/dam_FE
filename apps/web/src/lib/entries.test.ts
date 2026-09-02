@@ -180,7 +180,7 @@ test('entriesInYear 는 없는 해에 빈 배열을 준다', () => {
 });
 
 test('bandOf 는 색이 여럿일 때만 그라데이션이 된다', () => {
-  assert.equal(bandOf(['#aaa', '#bbb']), 'linear-gradient(to bottom, #aaa, #bbb)');
+  assert.equal(bandOf(['#aaa', '#bbb']), 'linear-gradient(to right, #aaa, #bbb)');
   assert.equal(bandOf(['#aaa']), '#aaa');
   assert.equal(bandOf([]), 'var(--color-faint)');
 });

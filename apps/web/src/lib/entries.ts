@@ -108,12 +108,12 @@ export function entriesInYear(entries: readonly Entry[], year: number): Entry[] 
 }
 
 /**
- * 한 해를 한 줄로 잇는 값. 색이 하나면 그라데이션이 성립하지 않고,
+ * 한 해를 한 줄로 잇는 값. 왼쪽이 1월이다. 색이 하나면 그라데이션이 성립하지 않고,
  * 아직 담은 것이 없으면 빈 자리로 남는다.
  */
 export function bandOf(colors: readonly string[]): string {
   if (colors.length === 0) return 'var(--color-faint)';
   if (colors.length === 1) return colors[0];
 
-  return `linear-gradient(to bottom, ${colors.join(', ')})`;
+  return `linear-gradient(to right, ${colors.join(', ')})`;
 }

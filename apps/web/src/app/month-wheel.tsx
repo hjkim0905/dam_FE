@@ -32,10 +32,17 @@ function Column({
     const index = values.indexOf(chosen);
     if (!column || index < 0) return;
 
+    // 고른 값이 바뀔 때마다 이 자리로 되돌리면, 손이 굴려 놓은 관성을 밀어친다.
+    // 눈금 반 칸 넘게 어긋났을 때만 바로잡는다.
+    const target = index * rowPx();
+    if (Math.abs(column.scrollTop - target) < rowPx() / 2) return;
+
     column.style.scrollBehavior = 'auto';
-    column.scrollTop = index * rowPx();
+    column.scrollTop = target;
     column.style.scrollBehavior = '';
   }, [values, chosen]);
+
+  useEffect(() => () => window.clearTimeout(settling.current), []);
 
   const onScroll = () => {
     const column = ref.current;
@@ -104,9 +111,17 @@ const bandStyle = css`
   background: var(--color-faint);
 `;
 
+/* 위아래로 흐려져야 기둥이 도는 것처럼 읽힌다. 그냥 잘리면 목록을 자른 것으로 보인다. */
 const columnStyle = css`
   position: relative;
   height: ${ROW_REM * 5}rem;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    #000 ${ROW_REM * 1.6}rem,
+    #000 calc(100% - ${ROW_REM * 1.6}rem),
+    transparent
+  );
   overflow-y: auto;
   scroll-snap-type: y mandatory;
   scrollbar-width: none;

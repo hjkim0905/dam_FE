@@ -44,3 +44,13 @@ test('stripSlots 는 오늘이 마지막이 아니어도 그 자리를 찾는다
 test('stripSlots 는 기록이 없으면 빈 자리 하나만 둔다', () => {
   assert.deepEqual(stripSlots([], '2026-09-02'), { slots: 1, todayIndex: 0 });
 });
+
+test('stripSlots 는 지난 달엔 빈 자리를 붙이지 않는다', () => {
+  const dates = ['2026-08-02', '2026-08-19'];
+
+  assert.deepEqual(stripSlots(dates, null), { slots: 2, todayIndex: 1 });
+});
+
+test('stripSlots 는 기록 없는 지난 달에도 흔들리지 않는다', () => {
+  assert.deepEqual(stripSlots([], null), { slots: 0, todayIndex: 0 });
+});

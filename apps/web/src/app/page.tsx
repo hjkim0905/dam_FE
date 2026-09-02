@@ -14,11 +14,14 @@ import {
   monthDayLabel,
   monthKeyOf,
   monthLabel,
+  monthTitle,
   toDateKey,
+  yearsOf,
 } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
 import DayDetail from './day-detail';
+import MonthWheel from './month-wheel';
 import Sheet from './sheet';
 
 const DROP_WIDTH_REM = 4;
@@ -36,16 +39,22 @@ export default function Home() {
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [centered, setCentered] = useState(0);
   const [openDate, setOpenDate] = useState<string | null>(null);
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const [pickingMonth, setPickingMonth] = useState(false);
 
   useEffect(() => setEntries(loadEntries()), []);
 
   const today = toDateKey(new Date());
+  const monthKey = chosenMonth ?? monthKeyOf(today);
+  // 지난 달엔 담을 자리가 없다. 오늘은 이번 달을 보고 있을 때만 자리를 갖는다.
+  const todayHere = monthKey === monthKeyOf(today) ? today : null;
+
   // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
-  const thisMonth = entriesInMonth(entriesFrom(entries ?? [], 'mine'), monthKeyOf(today));
-  const capturedToday = thisMonth.some((e) => e.date === today);
+  const thisMonth = entriesInMonth(entriesFrom(entries ?? [], 'mine'), monthKey);
+  const capturedToday = todayHere !== null && thisMonth.some((e) => e.date === today);
   const { slots, todayIndex } = stripSlots(
     thisMonth.map((e) => e.date),
-    today
+    capturedToday ? today : todayHere
   );
 
   const showToday = useCallback(() => {
@@ -115,15 +124,18 @@ export default function Home() {
           left: var(--space-edge);
         `}
       >
-        <h1
-          css={css`
-            margin: 0;
-            font-size: 1.75rem;
-            font-weight: 400;
-            letter-spacing: -0.02em;
-          `}
-        >
-          {monthLabel(today)}의 색
+        <h1 css={headingStyle}>
+          <button
+            type="button"
+            onClick={() => setPickingMonth(true)}
+            aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
+            css={titleStyle}
+          >
+          {monthLabel(monthKey)}의 색
+          <span css={chevronStyle} aria-hidden>
+            ▼
+          </span>
+          </button>
         </h1>
         <p
           css={css`
@@ -201,6 +213,19 @@ export default function Home() {
       </section>
 
       <Sheet
+        open={pickingMonth}
+        label="년월 고르기"
+        fill={false}
+        onClose={() => setPickingMonth(false)}
+      >
+        <MonthWheel
+          years={yearsOf(entries ?? [], monthKey)}
+          monthKey={monthKey}
+          onChange={setChosenMonth}
+        />
+      </Sheet>
+
+      <Sheet
         open={openDate !== null}
         label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
         onClose={() => setOpenDate(null)}
@@ -276,4 +301,47 @@ const dropStyle = css`
     background: url('/capsule-shade.png') center / 100% 100% no-repeat;
     mix-blend-mode: hard-light;
   }
+`;
+
+const headingStyle = css`
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+`;
+
+const titleStyle = css`
+  display: flex;
+  align-items: baseline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) linear;
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &:active {
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.25rem;
+  }
+`;
+
+/* iOS 는 누를 수 있는 글자를 틴트 색으로 칠하지만, 여기서는 기록한 색이 유일한 색이라
+   그 수단이 없다. 대신 같은 폰트의 글자를 쓴다 — 갈무리에 ▾ 는 없고 ▼ 는 있어서,
+   ▾ 를 쓰면 시스템 폰트로 떨어져 픽셀 글자 옆에 매끈한 삼각형이 붙는다. */
+const chevronStyle = css`
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
 `;

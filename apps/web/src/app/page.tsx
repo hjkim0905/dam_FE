@@ -9,6 +9,7 @@ import { requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex, stripSlots } from '@/lib/carousel';
 import {
   entriesFrom,
+  sidesOn,
   entriesInMonth,
   monthDayLabel,
   monthKeyOf,
@@ -17,6 +18,8 @@ import {
 } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
+import DayDetail from './day-detail';
+import Sheet from './sheet';
 
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
@@ -32,6 +35,7 @@ export default function Home() {
   // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [centered, setCentered] = useState(0);
+  const [openDate, setOpenDate] = useState<string | null>(null);
 
   useEffect(() => setEntries(loadEntries()), []);
 
@@ -169,9 +173,11 @@ export default function Home() {
             key={entry.date}
             type="button"
             aria-label={`${monthDayLabel(entry.date)}의 색`}
-            onClick={(e) =>
-              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' })
-            }
+            // 멀리 있는 방울은 먼저 데려온다. 이미 와 있으면 그날을 연다.
+            onClick={(e) => {
+              if (index === centered) setOpenDate(entry.date);
+              else e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
+            }}
             css={dropStyle}
             style={
               {
@@ -193,6 +199,15 @@ export default function Home() {
           />
         )}
       </section>
+
+      <Sheet
+        open={openDate !== null}
+        label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
+        onClose={() => setOpenDate(null)}
+      >
+        {/* 홈은 내 것만 보는 자리다. 상대의 그날은 달력에서 함께 본다. */}
+        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(thisMonth, openDate)} />}
+      </Sheet>
     </main>
   );
 }

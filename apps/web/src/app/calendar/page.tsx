@@ -115,9 +115,6 @@ export default function CalendarScreen() {
         css={titleStyle}
       >
         {monthTitle(monthKey)}
-        <span css={chevronStyle} aria-hidden>
-          ▼
-        </span>
       </button>
 
       {entries === null ? null : (
@@ -192,15 +189,6 @@ const screenStyle = css`
   height: 100%;
   flex-direction: column;
   padding: 4.5rem var(--space-edge) 0;
-`;
-
-/* iOS 는 누를 수 있는 글자를 틴트 색으로 칠하지만, 여기서는 기록한 색이 유일한 색이라
-   그 수단이 없다. 대신 같은 폰트의 글자를 쓴다 — 갈무리에 ▾ 는 없고 ▼ 는 있어서,
-   ▾ 를 쓰면 시스템 폰트로 떨어져 픽셀 글자 옆에 매끈한 삼각형이 붙는다. */
-const chevronStyle = css`
-  margin-left: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--color-muted);
 `;
 
 const titleStyle = css`

@@ -16,6 +16,7 @@ import {
   monthKeyOf,
   toDateKey,
   upsertEntry,
+  yearsOf,
 } from './entries';
 import type { Entry } from './entries';
 
@@ -147,4 +148,18 @@ test('upsertEntry 는 내가 그날 다시 담으면 내 것만 바꾼다', () =
     after.map((e) => `${e.author}:${e.color}`).sort(),
     ['me:#ccc', 'you:#aaa']
   );
+});
+
+test('yearsOf 는 기록이 있는 가장 이른 해부터 보고 있는 해까지 준다', () => {
+  const all = [entry('2024-05-01'), entry('2026-09-01')];
+
+  assert.deepEqual(yearsOf(all, '2026-09'), [2024, 2025, 2026]);
+});
+
+test('yearsOf 는 기록이 없으면 보고 있는 해 하나만 준다', () => {
+  assert.deepEqual(yearsOf([], '2026-09'), [2026]);
+});
+
+test('yearsOf 는 기록보다 앞선 달을 보고 있어도 그 해를 포함한다', () => {
+  assert.deepEqual(yearsOf([entry('2026-09-01')], '2026-01'), [2026]);
 });

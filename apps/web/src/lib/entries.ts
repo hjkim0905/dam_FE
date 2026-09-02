@@ -90,3 +90,14 @@ export function sidesOn(
     theirs: day.find((e) => e.author !== me) ?? null,
   };
 }
+
+/** 휠이 고를 수 있는 해들. 기록이 있는 가장 이른 해부터 지금 보고 있는 해까지. */
+export function yearsOf(entries: readonly Entry[], monthKey: string): number[] {
+  const shown = Number(monthKey.slice(0, 4));
+  const earliest = entries.reduce(
+    (found, e) => Math.min(found, Number(e.date.slice(0, 4))),
+    shown
+  );
+
+  return Array.from({ length: shown - earliest + 1 }, (_, i) => earliest + i);
+}

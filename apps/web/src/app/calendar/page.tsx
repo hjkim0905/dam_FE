@@ -14,9 +14,13 @@ import {
   monthTitle,
   sidesOn,
   toDateKey,
+  yearsOf,
 } from '@/lib/entries';
 import type { Company, Entry, Sides } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
+import DayDetail from '../day-detail';
+import MonthWheel from '../month-wheel';
+import Sheet from '../sheet';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const VIEWS: { value: Company; label: string }[] = [
@@ -25,12 +29,28 @@ const VIEWS: { value: Company; label: string }[] = [
   { value: 'theirs', label: '상대것' },
 ];
 
-function Day({ dateKey, sides }: { dateKey: string; sides: Sides }) {
+function Day({
+  dateKey,
+  sides,
+  onOpen,
+}: {
+  dateKey: string;
+  sides: Sides;
+  onOpen: (dateKey: string) => void;
+}) {
   const shots = [sides.mine, sides.theirs].filter((e): e is Entry => e !== null);
   const label = monthDayLabel(dateKey);
 
+  // 담지 않은 날은 열 것이 없다. 빈 버튼을 두면 눌러도 아무 일이 없다.
+  const Cell = shots.length > 0 ? 'button' : 'div';
+
   return (
-    <div css={cellStyle}>
+    <Cell
+      css={[cellStyle, shots.length > 0 && openableStyle]}
+      {...(shots.length > 0
+        ? { type: 'button' as const, 'aria-label': `${label} 기록 보기`, onClick: () => onOpen(dateKey) }
+        : {})}
+    >
       <div css={slotStyle}>
         {shots.length > 0 && (
           <div css={shotsStyle}>
@@ -58,7 +78,7 @@ function Day({ dateKey, sides }: { dateKey: string; sides: Sides }) {
       <small css={[numberStyle, shots.length > 0 && filledNumberStyle]}>
         {Number(dateKey.slice(8))}
       </small>
-    </div>
+    </Cell>
   );
 }
 
@@ -67,6 +87,10 @@ export default function CalendarScreen() {
   // 사진 없는 달이 그려졌다가 채워지고, 필터가 뒤늦게 생기며 격자가 아래로 밀린다.
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [view, setView] = useState<Company>('both');
+  const [openDate, setOpenDate] = useState<string | null>(null);
+  // 고른 달이 없으면 이번 달이다. 상태로 두어야 휠이 바꿀 자리가 생긴다.
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const [pickingMonth, setPickingMonth] = useState(false);
 
   useEffect(() => setEntries(loadEntries()), []);
 
@@ -78,13 +102,20 @@ export default function CalendarScreen() {
     []
   );
 
-  const monthKey = monthKeyOf(toDateKey(new Date()));
+  const monthKey = chosenMonth ?? monthKeyOf(toDateKey(new Date()));
   const together = hasCompany(entries ?? []);
   const shown = entriesFrom(entries ?? [], together ? view : 'both');
 
   return (
     <main css={screenStyle}>
-      <h1 css={titleStyle}>{monthTitle(monthKey)}</h1>
+      <button
+        type="button"
+        onClick={() => setPickingMonth(true)}
+        aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
+        css={titleStyle}
+      >
+        {monthTitle(monthKey)}
+      </button>
 
       {entries === null ? null : (
         <>
@@ -113,7 +144,12 @@ export default function CalendarScreen() {
           <div css={gridStyle}>
             {monthCells(monthKey).map((dateKey, index) =>
               dateKey ? (
-                <Day key={dateKey} dateKey={dateKey} sides={sidesOn(shown, dateKey)} />
+                <Day
+                key={dateKey}
+                dateKey={dateKey}
+                sides={sidesOn(shown, dateKey)}
+                onOpen={setOpenDate}
+              />
               ) : (
                 // 1일 앞의 빈 자리. 날짜가 없으니 키로 쓸 것도 자리 순서뿐이다.
                 // eslint-disable-next-line react/no-array-index-key
@@ -123,6 +159,26 @@ export default function CalendarScreen() {
           </div>
         </>
       )}
+
+      <Sheet
+        open={pickingMonth}
+        label="년월 고르기"
+        onClose={() => setPickingMonth(false)}
+      >
+        <MonthWheel
+          years={yearsOf(entries ?? [], monthKey)}
+          monthKey={monthKey}
+          onChange={setChosenMonth}
+        />
+      </Sheet>
+
+      <Sheet
+        open={openDate !== null}
+        label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
+        onClose={() => setOpenDate(null)}
+      >
+        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(shown, openDate)} />}
+      </Sheet>
     </main>
   );
 }
@@ -135,10 +191,31 @@ const screenStyle = css`
 `;
 
 const titleStyle = css`
-  margin: 0;
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
   font-size: 1.75rem;
-  font-weight: 400;
   letter-spacing: -0.02em;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) linear;
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &:active {
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.25rem;
+  }
 `;
 
 const segmentStyle = css`
@@ -271,4 +348,23 @@ const numberStyle = css`
 
 const filledNumberStyle = css`
   color: var(--color-foreground);
+`;
+
+const openableStyle = css`
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+
+  &:active {
+    transform: scale(0.94);
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.25rem;
+    border-radius: var(--radius-thumb);
+  }
 `;

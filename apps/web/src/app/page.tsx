@@ -219,7 +219,7 @@ export default function Home() {
         onClose={() => setPickingMonth(false)}
       >
         <MonthWheel
-          years={yearsOf(entries ?? [], monthKey)}
+          years={yearsOf(entries ?? [], Number(monthKey.slice(0, 4)))}
           monthKey={monthKey}
           onChange={setChosenMonth}
         />

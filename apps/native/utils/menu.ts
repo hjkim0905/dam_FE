@@ -32,7 +32,7 @@ export function homeMenu(select: (action: MenuAction) => void): NativeStackHeade
             items: [
               opens("개인정보처리방침", "privacy"),
               opens("이용약관", "terms"),
-              opens("문의하기", "contact"),
+              opens("문의와 연락처", "contact"),
             ],
           },
           opens("로그아웃", "signOut"),

@@ -24,13 +24,25 @@ export default function RoomSheet({
     <Sheet open={open} label="방" fill={false} onClose={onClose}>
       <h2 css={titleStyle}>방</h2>
 
-      {together ? (
-        <p css={stateStyle}>함께 담고 있어요.</p>
-      ) : (
-        <p css={stateStyle}>아직 혼자 담고 있어요.</p>
-      )}
+      <p css={stateStyle}>
+        {together ? '함께 담고 있어요.' : '아직 혼자 담고 있어요.'}
+      </p>
 
-      <label css={fieldStyle}>
+      {/* 만들지 참여할지는 방이 있느냐에 달렸다. 네이티브 메뉴는 그 상태를 모르므로
+          메뉴는 "방" 하나로 두고 갈림길을 여기에 둔다. */}
+      {together ? (
+        <button type="button" disabled css={[actionStyle, quietStyle]}>
+          방 나가기
+        </button>
+      ) : (
+        <>
+          <button type="button" disabled css={actionStyle}>
+            초대코드 만들기
+          </button>
+
+          <p css={orStyle}>또는</p>
+
+          <label css={fieldStyle}>
         <span css={labelStyle}>받은 초대코드</span>
         <input
           value={code}
@@ -43,11 +55,13 @@ export default function RoomSheet({
         />
       </label>
 
-      {/* 코드를 주고받는 일도, 방을 맺는 일도 서버가 있어야 성립한다.
-          형태가 맞는지까지는 여기서 보고, 그 뒤는 계정이 붙을 때 잇는다. */}
-      <button type="button" disabled={!isInviteCode(code)} css={actionStyle}>
-        {isInviteCode(code) ? '이 코드로 들어가기' : '여섯 자리를 채워 주세요'}
-      </button>
+          {/* 코드를 주고받는 일도, 방을 맺는 일도 서버가 있어야 성립한다.
+              형태가 맞는지까지는 여기서 보고, 그 뒤는 계정이 붙을 때 잇는다. */}
+          <button type="button" disabled={!isInviteCode(code)} css={actionStyle}>
+            {isInviteCode(code) ? '이 코드로 들어가기' : '여섯 자리를 채워 주세요'}
+          </button>
+        </>
+      )}
 
       <p css={noteStyle}>초대와 방 맺기는 계정이 생긴 뒤에 열려요.</p>
     </Sheet>
@@ -127,6 +141,19 @@ const actionStyle = css`
     outline: 0.125rem solid var(--color-foreground);
     outline-offset: 0.25rem;
   }
+`;
+
+const orStyle = css`
+  margin: 0 0 1.25rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+`;
+
+const quietStyle = css`
+  background: none;
+  border: 0.0625rem solid var(--color-faint);
+  color: var(--color-muted);
 `;
 
 const noteStyle = css`

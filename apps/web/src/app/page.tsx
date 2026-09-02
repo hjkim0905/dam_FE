@@ -31,9 +31,10 @@ import Sheet from './sheet';
 type MenuAction = 'me' | 'room' | 'privacy' | 'terms' | 'contact' | 'signOut' | 'deleteAccount';
 
 /* 앱 밖 문서라 웹뷰가 아니라 사파리로 나간다. 주소가 바뀌면 여기만 고친다. */
-const DOCUMENTS: Record<'privacy' | 'terms', string> = {
+const DOCUMENTS: Record<'privacy' | 'terms' | 'contact', string> = {
   privacy: 'https://www.notion.so/dam-privacy',
   terms: 'https://www.notion.so/dam-terms',
+  contact: 'https://www.notion.so/dam-contact',
 };
 
 const DROP_WIDTH_REM = 4;
@@ -103,7 +104,7 @@ export default function Home() {
       subscribeToNative((message) => {
         if (message.type === 'MENU') {
           const { action } = (message.payload ?? {}) as { action?: MenuAction };
-          if (action === 'privacy' || action === 'terms') openOutside(DOCUMENTS[action]);
+          if (action && action in DOCUMENTS) openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
           else if (action) setOpened(action);
           return;
         }
@@ -240,15 +241,6 @@ export default function Home() {
       <RoomSheet
         open={opened === 'room'}
         entries={entries ?? []}
-        onClose={() => setOpened(null)}
-      />
-
-      <ConfirmSheet
-        open={opened === 'contact'}
-        title="문의하기"
-        detail="담을 쓰다 막히거나 이상한 곳이 있으면 알려주세요. 메일로 답을 드려요."
-        confirm="메일 보내기"
-        onConfirm={() => setOpened(null)}
         onClose={() => setOpened(null)}
       />
 

@@ -7,16 +7,21 @@ import test from 'node:test';
 import {
   entriesInMonth,
   entriesOn,
+  entriesFrom,
+  hasCompany,
   monthDayLabel,
   monthLabel,
+  monthTitle,
+  sidesOn,
   monthKeyOf,
   toDateKey,
   upsertEntry,
+  yearsOf,
 } from './entries';
 import type { Entry } from './entries';
 
-function entry(date: string, color = '#123456'): Entry {
-  return { date, color, imageUrl: '', memo: '' };
+function entry(date: string, color = '#123456', author = 'me'): Entry {
+  return { date, color, imageUrl: '', memo: '', author };
 }
 
 test('toDateKey 는 UTC 가 아니라 그 자리의 날짜를 쓴다', () => {
@@ -81,4 +86,80 @@ test('monthDayLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
 test('monthLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
   assert.equal(monthLabel('2026-08-01'), '8월');
   assert.equal(monthLabel('2026-12-25'), '12월');
+});
+
+test('monthTitle 은 년과 월을 함께 준다', () => {
+  assert.equal(monthTitle('2026-09-01'), '2026년 9월');
+});
+
+test('entriesFrom 은 보기에 따라 작성자를 가른다', () => {
+  const all = [entry('2026-09-01', '#a', 'me'), entry('2026-09-02', '#b', 'you')];
+
+  assert.deepEqual(entriesFrom(all, 'mine').map((e) => e.color), ['#a']);
+  assert.deepEqual(entriesFrom(all, 'theirs').map((e) => e.color), ['#b']);
+  assert.deepEqual(entriesFrom(all, 'both').map((e) => e.color), ['#a', '#b']);
+});
+
+test('hasCompany 는 혼자 쓰는 동안 거짓이다', () => {
+  assert.equal(hasCompany([entry('2026-09-01')]), false);
+  assert.equal(hasCompany([entry('2026-09-01'), entry('2026-09-01', '#b', 'you')]), true);
+});
+
+test('sidesOn 은 같은 날의 양쪽을 갈라 준다', () => {
+  const all = [entry('2026-09-05', '#a', 'me'), entry('2026-09-05', '#b', 'you')];
+  const both = sidesOn(all, '2026-09-05');
+
+  assert.equal(both.mine?.color, '#a');
+  assert.equal(both.theirs?.color, '#b');
+});
+
+test('sidesOn 은 한쪽만 담은 날에 나머지를 비운다', () => {
+  const only = sidesOn([entry('2026-09-05', '#a', 'me')], '2026-09-05');
+
+  assert.equal(only.mine?.color, '#a');
+  assert.equal(only.theirs, null);
+});
+
+test('entriesInMonth 는 저장된 순서와 무관하게 날짜순으로 준다', () => {
+  const jumbled = [entry('2026-09-22'), entry('2026-09-03'), entry('2026-09-14')];
+
+  assert.deepEqual(
+    entriesInMonth(jumbled, '2026-09').map((e) => e.date),
+    ['2026-09-03', '2026-09-14', '2026-09-22']
+  );
+});
+
+test('upsertEntry 는 같은 날 상대가 담은 것을 지우지 않는다', () => {
+  const before = [entry('2026-09-05', '#aaa', 'you')];
+  const after = upsertEntry(before, entry('2026-09-05', '#bbb', 'me'));
+
+  assert.deepEqual(
+    after.map((e) => `${e.author}:${e.color}`),
+    ['you:#aaa', 'me:#bbb']
+  );
+});
+
+test('upsertEntry 는 내가 그날 다시 담으면 내 것만 바꾼다', () => {
+  const before = [entry('2026-09-05', '#aaa', 'you'), entry('2026-09-05', '#bbb', 'me')];
+  const after = upsertEntry(before, entry('2026-09-05', '#ccc', 'me'));
+
+  assert.equal(after.length, 2);
+  assert.deepEqual(
+    after.map((e) => `${e.author}:${e.color}`).sort(),
+    ['me:#ccc', 'you:#aaa']
+  );
+});
+
+test('yearsOf 는 기록이 있는 가장 이른 해부터 보고 있는 해까지 준다', () => {
+  const all = [entry('2024-05-01'), entry('2026-09-01')];
+
+  assert.deepEqual(yearsOf(all, '2026-09'), [2024, 2025, 2026]);
+});
+
+test('yearsOf 는 기록이 없으면 보고 있는 해 하나만 준다', () => {
+  assert.deepEqual(yearsOf([], '2026-09'), [2026]);
+});
+
+test('yearsOf 는 기록보다 앞선 달을 보고 있어도 그 해를 포함한다', () => {
+  assert.deepEqual(yearsOf([entry('2026-09-01')], '2026-01'), [2026]);
 });

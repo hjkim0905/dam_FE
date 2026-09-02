@@ -3,47 +3,83 @@
 
 import { css } from '@emotion/react';
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { requestHaptic, subscribeToNative } from '@/lib/bridge';
-import { snappedIndex } from '@/lib/carousel';
+import { snappedIndex, stripSlots } from '@/lib/carousel';
 import {
+  entriesFrom,
+  sidesOn,
   entriesInMonth,
   monthDayLabel,
   monthKeyOf,
   monthLabel,
+  monthTitle,
   toDateKey,
+  yearsOf,
 } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
 import { loadEntries } from '@/lib/entry-store';
+import DayDetail from './day-detail';
+import MonthWheel from './month-wheel';
+import Sheet from './sheet';
 
 const DROP_WIDTH_REM = 4;
 const DROP_GAP_REM = 0.5;
 
+/* 자리를 잡는 일은 그려지기 전에 끝나야 한다. useEffect 는 페인트 뒤라 옮기는 게
+   눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
+const useBeforePaint =
+  typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 export default function Home() {
   const stripRef = useRef<HTMLDivElement>(null);
-  const [entries, setEntries] = useState<Entry[]>([]);
+  // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
+  // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
+  const [entries, setEntries] = useState<Entry[] | null>(null);
   const [centered, setCentered] = useState(0);
+  const [openDate, setOpenDate] = useState<string | null>(null);
+  const [chosenMonth, setChosenMonth] = useState<string | null>(null);
+  const [pickingMonth, setPickingMonth] = useState(false);
 
   useEffect(() => setEntries(loadEntries()), []);
 
   const today = toDateKey(new Date());
-  const thisMonth = entriesInMonth(entries, monthKeyOf(today));
-  const capturedToday = thisMonth.some((e) => e.date === today);
-  const slots = capturedToday ? thisMonth.length : thisMonth.length + 1;
+  const monthKey = chosenMonth ?? monthKeyOf(today);
+  // 지난 달엔 담을 자리가 없다. 오늘은 이번 달을 보고 있을 때만 자리를 갖는다.
+  const todayHere = monthKey === monthKeyOf(today) ? today : null;
+
+  // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
+  const thisMonth = entriesInMonth(entriesFrom(entries ?? [], 'mine'), monthKey);
+  const capturedToday = todayHere !== null && thisMonth.some((e) => e.date === today);
+  const { slots, todayIndex } = stripSlots(
+    thisMonth.map((e) => e.date),
+    capturedToday ? today : todayHere
+  );
 
   const showToday = useCallback(() => {
     const strip = stripRef.current;
-    if (!strip || slots === 0) return;
-    // 방울을 눌러 가운데로 데려오는 길이 부드러워야 해서 스트립이 smooth 다.
-    // 오늘로 돌려놓는 건 보이면 안 되므로 이 호출만 즉시로 되돌린다.
-    strip.scrollTo({ left: (slots - 1) * pitchOf(), behavior: 'instant' });
-    setCentered(slots - 1);
-  }, [slots]);
+    const target = strip?.children[todayIndex];
+    if (!strip || !target) return;
 
-  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 끝으로
-  // 보내면 오늘이 가운데 오고, 볼 것이 없던 자리라 튀어 보이지 않는다.
-  useEffect(showToday, [showToday]);
+    // 좌표로 계산하면 방울 너비·루트 폰트 크기·좌우 패딩이 전부 예상대로여야 맞는다.
+    // 스트립의 smooth 는 방울을 눌러 데려올 때의 것이라, 돌려놓을 때만 끈다.
+    strip.style.scrollBehavior = 'auto';
+    target.scrollIntoView({ inline: 'center', block: 'nearest' });
+    strip.style.scrollBehavior = '';
+    setCentered(todayIndex);
+  }, [slots, todayIndex]);
+
+  // 기록은 클라이언트에서 읽으므로 첫 페인트엔 비어 있다. 채워지는 순간 오늘로
+  // 보내면 볼 것이 없던 자리라 튀어 보이지 않는다.
+  //
+  // 다음 프레임에 한 번 더 부르는 이유: 스냅 컨테이너는 자식이 늘어나면 레이아웃 뒤에
+  // 스냅을 다시 잡는데, 그때 방금 옮겨둔 자리가 첫 칸으로 되돌아가는 엔진이 있다.
+  useBeforePaint(() => {
+    showToday();
+    const frame = requestAnimationFrame(showToday);
+    return () => cancelAnimationFrame(frame);
+  }, [showToday]);
 
   // 탭마다 WebView 가 따로 살아 있어서, 다시 들어와도 떠날 때 그대로다. 멈추는 건
   // 스크롤만이 아니다. 오늘 날짜는 렌더 중에 읽으므로 리렌더가 없으면 자정을 넘겨도
@@ -88,15 +124,18 @@ export default function Home() {
           left: var(--space-edge);
         `}
       >
-        <h1
-          css={css`
-            margin: 0;
-            font-size: 1.75rem;
-            font-weight: 400;
-            letter-spacing: -0.02em;
-          `}
-        >
-          {monthLabel(today)}의 색
+        <h1 css={headingStyle}>
+          <button
+            type="button"
+            onClick={() => setPickingMonth(true)}
+            aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
+            css={titleStyle}
+          >
+          {monthLabel(monthKey)}의 색
+          <span css={chevronStyle} aria-hidden>
+            ▼
+          </span>
+          </button>
         </h1>
         <p
           css={css`
@@ -105,7 +144,7 @@ export default function Home() {
             color: var(--color-muted);
           `}
         >
-          {thisMonth.length}방울의 기록
+          {entries === null ? '\u00a0' : `${thisMonth.length}방울의 기록`}
         </p>
       </header>
 
@@ -117,25 +156,40 @@ export default function Home() {
           flex: 1;
           align-items: center;
           gap: ${DROP_GAP_REM}rem;
-          padding: 0 calc(50vw - ${DROP_WIDTH_REM / 2}rem);
           overflow-x: auto;
           scroll-snap-type: x mandatory;
           scroll-behavior: smooth;
           scrollbar-width: none;
+
+          /* 첫 방울과 마지막 방울도 가운데 설 수 있으려면 양끝에 화면 절반만큼의
+             여백이 있어야 한다. 패딩으로 주면 WebKit 이 끝쪽 패딩을 scrollWidth 에
+             넣지 않아 넘치는 폭이 사라지고 스트립이 아예 스크롤되지 않는다.
+             자리를 차지하는 요소로 두면 그 계산에 반드시 들어간다.
+             gap 이 이 요소에도 걸리므로 그만큼 빼야 방울이 정확히 가운데 선다. */
+          &::before,
+          &::after {
+            content: '';
+            flex: 0 0 calc(
+              50vw - ${DROP_WIDTH_REM / 2}rem - ${DROP_GAP_REM}rem
+            );
+          }
 
           &::-webkit-scrollbar {
             display: none;
           }
         `}
       >
-        {thisMonth.map((entry, index) => (
+        {entries !== null &&
+          thisMonth.map((entry, index) => (
           <button
             key={entry.date}
             type="button"
             aria-label={`${monthDayLabel(entry.date)}의 색`}
-            onClick={(e) =>
-              e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' })
-            }
+            // 멀리 있는 방울은 먼저 데려온다. 이미 와 있으면 그날을 연다.
+            onClick={(e) => {
+              if (index === centered) setOpenDate(entry.date);
+              else e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
+            }}
             css={dropStyle}
             style={
               {
@@ -144,9 +198,9 @@ export default function Home() {
               } as CSSProperties
             }
           />
-        ))}
+          ))}
 
-        {!capturedToday && (
+        {entries !== null && !capturedToday && (
           <Link
             href="/record"
             aria-label="오늘의 색 담기"
@@ -157,6 +211,28 @@ export default function Home() {
           />
         )}
       </section>
+
+      <Sheet
+        open={pickingMonth}
+        label="년월 고르기"
+        fill={false}
+        onClose={() => setPickingMonth(false)}
+      >
+        <MonthWheel
+          years={yearsOf(entries ?? [], monthKey)}
+          monthKey={monthKey}
+          onChange={setChosenMonth}
+        />
+      </Sheet>
+
+      <Sheet
+        open={openDate !== null}
+        label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
+        onClose={() => setOpenDate(null)}
+      >
+        {/* 홈은 내 것만 보는 자리다. 상대의 그날은 달력에서 함께 본다. */}
+        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(thisMonth, openDate)} />}
+      </Sheet>
     </main>
   );
 }
@@ -225,4 +301,47 @@ const dropStyle = css`
     background: url('/capsule-shade.png') center / 100% 100% no-repeat;
     mix-blend-mode: hard-light;
   }
+`;
+
+const headingStyle = css`
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+`;
+
+const titleStyle = css`
+  display: flex;
+  align-items: baseline;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  transition: opacity var(--duration-fast) linear;
+
+  @media (hover: hover) {
+    &:hover {
+      opacity: 0.7;
+    }
+  }
+
+  &:active {
+    opacity: 0.5;
+  }
+
+  &:focus-visible {
+    outline: 0.125rem solid var(--color-foreground);
+    outline-offset: 0.25rem;
+  }
+`;
+
+/* iOS 는 누를 수 있는 글자를 틴트 색으로 칠하지만, 여기서는 기록한 색이 유일한 색이라
+   그 수단이 없다. 대신 같은 폰트의 글자를 쓴다 — 갈무리에 ▾ 는 없고 ▼ 는 있어서,
+   ▾ 를 쓰면 시스템 폰트로 떨어져 픽셀 글자 옆에 매끈한 삼각형이 붙는다. */
+const chevronStyle = css`
+  margin-left: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
 `;

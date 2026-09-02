@@ -13,6 +13,7 @@ import { BACKGROUND } from "../theme";
 import LoadingCapsule from "./LoadingCapsule";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
+import { holdWeb } from "../utils/web-channel";
 import type { HapticStyle } from "../utils/bridge";
 
 const WebView = WebViewBase as unknown as ForwardRefExoticComponent<
@@ -50,8 +51,10 @@ export default function AppWebView({ path }: { path: string }) {
   // 탭이 가려진 동안 미리 되돌려 두면 다시 왔을 때 이미 첫 화면이다.
   useFocusEffect(
     useCallback(() => {
+      holdWeb((message) => webViewRef.current?.postMessage(message));
       webViewRef.current?.postMessage(JSON.stringify({ type: "FOCUS" }));
       return () => {
+        holdWeb(null);
         webViewRef.current?.postMessage(JSON.stringify({ type: "BLUR" }));
       };
     }, [])

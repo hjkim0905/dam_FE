@@ -92,12 +92,28 @@ export function sidesOn(
 }
 
 /** 휠이 고를 수 있는 해들. 기록이 있는 가장 이른 해부터 지금 보고 있는 해까지. */
-export function yearsOf(entries: readonly Entry[], monthKey: string): number[] {
-  const shown = Number(monthKey.slice(0, 4));
+export function yearsOf(entries: readonly Entry[], shown: number): number[] {
   const earliest = entries.reduce(
     (found, e) => Math.min(found, Number(e.date.slice(0, 4))),
     shown
   );
 
   return Array.from({ length: shown - earliest + 1 }, (_, i) => earliest + i);
+}
+
+export function entriesInYear(entries: readonly Entry[], year: number): Entry[] {
+  return entries
+    .filter((e) => e.date.startsWith(`${year}-`))
+    .sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/**
+ * 한 해를 한 줄로 잇는 값. 왼쪽이 1월이다. 색이 하나면 그라데이션이 성립하지 않고,
+ * 아직 담은 것이 없으면 빈 자리로 남는다.
+ */
+export function bandOf(colors: readonly string[]): string {
+  if (colors.length === 0) return 'var(--color-faint)';
+  if (colors.length === 1) return colors[0];
+
+  return `linear-gradient(to right, ${colors.join(', ')})`;
 }

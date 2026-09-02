@@ -8,9 +8,21 @@ import { snappedIndex } from '@/lib/carousel';
 import { monthDayLabel } from '@/lib/entries';
 import type { Entry, Sides } from '@/lib/entries';
 
-function Kept({ entry, whose, dateKey }: { entry: Entry; whose: string; dateKey: string }) {
+function Kept({
+  entry,
+  whose,
+  dateKey,
+  named,
+}: {
+  entry: Entry;
+  whose: string;
+  dateKey: string;
+  named: boolean;
+}) {
   return (
     <article css={pageStyle}>
+      {/* 혼자 담은 날엔 누구 것인지 말할 필요가 없다. 가릴 것이 있을 때만 이름을 단다. */}
+      {named && <p css={whoseStyle}>{whose} 담은</p>}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={entry.imageUrl}
@@ -61,7 +73,13 @@ export default function DayDetail({ dateKey, sides }: { dateKey: string; sides: 
 
       <div ref={pagerRef} onScroll={onScroll} css={pagerStyle}>
         {kept.map(({ entry, whose }) => (
-          <Kept key={entry.author} entry={entry} whose={whose} dateKey={dateKey} />
+          <Kept
+            key={entry.author}
+            entry={entry}
+            whose={whose}
+            dateKey={dateKey}
+            named={kept.length > 1}
+          />
         ))}
       </div>
 
@@ -91,10 +109,12 @@ const titleStyle = css`
   letter-spacing: -0.02em;
 `;
 
-/* 시트가 좌우로 여백을 갖고 있어 페이지도 그 폭이다. 한 장씩 딱 떨어지므로
-   가운데를 맞출 여백이 필요 없고, 끝쪽 패딩이 빠지는 문제도 생기지 않는다. */
+/* 넘기는 동안 두 사진이 맞붙지 않도록 사이를 벌린다. 페이저를 그 폭만큼 밖으로
+   빼고 페이지가 안쪽으로 물리면, 사진은 원래 폭 그대로면서 사이에만 틈이 생긴다.
+   스냅 간격은 페이저의 폭 그대로라 몇 번째 장인지 세는 계산은 바뀌지 않는다. */
 const pagerStyle = css`
   display: flex;
+  margin: 0 -0.375rem;
   overflow-x: auto;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
@@ -108,7 +128,14 @@ const pagerStyle = css`
 
 const pageStyle = css`
   flex: 0 0 100%;
+  padding: 0 0.375rem;
   scroll-snap-align: center;
+`;
+
+const whoseStyle = css`
+  margin: 0 0 0.75rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
 `;
 
 const shotStyle = css`
@@ -119,13 +146,15 @@ const shotStyle = css`
   background: var(--color-faint);
 `;
 
+/* 메모는 그 사람이 직접 쓴 말이라 담을 때와 같은 색으로 읽힌다.
+   누구 것인지는 곁들이는 정보라 한 단 아래에 둔다. */
 const saidStyle = css`
   display: flex;
   align-items: stretch;
   gap: 0.75rem;
   margin: 1.25rem 0 0;
   font-size: 0.875rem;
-  color: var(--color-muted);
+  color: var(--color-foreground);
 `;
 
 /* 색 막대가 글줄과 같은 키다. 메모가 여러 줄이 되면 막대도 같이 자란다. */

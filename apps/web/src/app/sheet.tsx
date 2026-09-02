@@ -143,9 +143,14 @@ const panelStyle = css`
   overscroll-behavior: contain;
 `;
 
-/* 잡는 자리는 손가락만 하다. 그래버 자체는 작아도 그 둘레가 다 잡힌다. */
+/* 잡는 자리는 손가락만 하다. 그래버 자체는 작아도 그 둘레가 다 잡힌다.
+   내용과 같이 스크롤돼 사라지면, 길게 내려간 뒤엔 닫으려고 위까지 되돌아가야 한다. */
 const handleStyle = css`
+  position: sticky;
+  top: 0;
+  z-index: 1;
   flex: 0 0 auto;
+  background: var(--color-background);
   display: flex;
   align-items: center;
   justify-content: center;

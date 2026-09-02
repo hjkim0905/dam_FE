@@ -13,11 +13,13 @@ type SheetProps = {
   open: boolean;
   label: string;
   onClose: () => void;
+  /** 화면을 가득 채운다. 끄면 내용 높이만큼만 올라온다. */
+  fill?: boolean;
   children: ReactNode;
 };
 
 /** 시트는 콘텐츠다. 유리가 아니므로 웹이 그린다 — 크롬만 네이티브가 맡는다. */
-export default function Sheet({ open, label, onClose, children }: SheetProps) {
+export default function Sheet({ open, label, onClose, fill = true, children }: SheetProps) {
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef({ from: 0, at: 0, time: 0, speed: 0 });
 
@@ -93,7 +95,7 @@ export default function Sheet({ open, label, onClose, children }: SheetProps) {
         aria-modal
         aria-label={label}
         onPointerDown={(e) => e.stopPropagation()}
-        css={panelStyle}
+        css={[panelStyle, fill ? fillStyle : holdStyle]}
       >
         <div
           onPointerDown={start}
@@ -132,7 +134,6 @@ const backdropStyle = css`
    시트를 끝까지 채워도 그 아래에 깔린다. 콘텐츠가 그만큼 비켜서야 한다. */
 const panelStyle = css`
   width: 100%;
-  height: calc(100% - var(--inset-top, env(safe-area-inset-top)) - 2.5rem);
   display: flex;
   flex-direction: column;
   padding: 0 var(--space-edge)
@@ -141,6 +142,15 @@ const panelStyle = css`
   background: var(--color-background);
   overflow-y: auto;
   overscroll-behavior: contain;
+`;
+
+const fillStyle = css`
+  height: calc(100% - var(--inset-top, env(safe-area-inset-top)) - 2.5rem);
+`;
+
+/* 내용이 적을 땐 채우지 않는다. 빈 자리가 넓으면 무엇을 하라는 자리인지 흐려진다. */
+const holdStyle = css`
+  max-height: calc(100% - var(--inset-top, env(safe-area-inset-top)) - 2.5rem);
 `;
 
 /* 잡는 자리는 손가락만 하다. 그래버 자체는 작아도 그 둘레가 다 잡힌다.

@@ -42,3 +42,8 @@ export function subscribeToNative(
 export function requestHaptic(style: 'selection' | 'light' | 'medium'): void {
   sendToNative({ type: 'HAPTIC', payload: { style } });
 }
+
+/** 약관과 방침은 앱 밖 문서다. 웹뷰 안에서 열면 돌아올 길이 없다. */
+export function openOutside(url: string): void {
+  sendToNative({ type: 'OPEN_URL', payload: { url } });
+}

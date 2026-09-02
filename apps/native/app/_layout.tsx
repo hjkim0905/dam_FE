@@ -4,7 +4,7 @@ import { TINT } from "../theme";
 export default function TabLayout() {
   return (
     <NativeTabs minimizeBehavior="onScrollDown" tintColor={TINT}>
-      <NativeTabs.Trigger name="index">
+      <NativeTabs.Trigger name="(home)">
         <NativeTabs.Trigger.Icon sf={{ default: "drop", selected: "drop.fill" }} />
         <NativeTabs.Trigger.Label>오늘</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>

@@ -9,7 +9,8 @@ export type HapticStyle = (typeof HAPTIC_STYLES)[number];
 
 export type BridgeCommand =
   | { type: "PING" }
-  | { type: "HAPTIC"; style: HapticStyle };
+  | { type: "HAPTIC"; style: HapticStyle }
+  | { type: "OPEN_URL"; url: string };
 
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
@@ -46,6 +47,15 @@ export function decodeCommand(raw: string): BridgeCommand | null {
     case "HAPTIC": {
       const style = memberOf(HAPTIC_STYLES, fieldOf(message.payload, "style"));
       return style ? { type: "HAPTIC", style } : null;
+    }
+
+    case "OPEN_URL": {
+      const url = fieldOf(message.payload, "url");
+      // 웹뷰가 보내는 문자열은 믿지 않는다. https 가 아닌 것을 그대로 열면
+      // 앱이 의도하지 않은 스킴으로 끌려갈 수 있다.
+      if (typeof url !== "string" || !url.startsWith("https://")) return null;
+
+      return { type: "OPEN_URL", url };
     }
 
     default:

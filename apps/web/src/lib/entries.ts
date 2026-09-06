@@ -1,15 +1,31 @@
-/** 방이 생기기 전까지의 작성자. 백엔드가 붙으면 실제 사용자 id 로 바뀐다. */
-export const ME = 'me';
-
 export type Entry = {
+  id: number;
   date: string;
   color: string;
   imageUrl: string;
   memo: string;
+  /** 서버의 사용자 id. 내 것인지 가리려면 내 id 와 견줘야 한다. */
   author: string;
+  authorName: string;
 };
 
 export type Company = 'mine' | 'both' | 'theirs';
+
+/** 화면의 필터 이름을 서버가 아는 이름으로 옮긴다. */
+export function viewOf(company: Company): 'MINE' | 'BOTH' | 'THEIRS' {
+  return company === 'mine' ? 'MINE' : company === 'both' ? 'BOTH' : 'THEIRS';
+}
+
+/** 그 달 전체를 덮는 구간. 서버는 from 과 to 를 반드시 받는다. */
+export function monthRange(monthKey: string): { from: string; to: string } {
+  const [year, month] = monthKey.split('-').map(Number);
+  const lastDay = new Date(year, month, 0).getDate();
+  return { from: `${monthKey}-01`, to: `${monthKey}-${String(lastDay).padStart(2, '0')}` };
+}
+
+export function yearRange(year: number): { from: string; to: string } {
+  return { from: `${year}-01-01`, to: `${year}-12-31` };
+}
 
 export type Sides = { mine: Entry | null; theirs: Entry | null };
 
@@ -29,13 +45,6 @@ export function monthDayLabel(dateKey: string): string {
   return `${Number(month)}월 ${Number(day)}일`;
 }
 
-export function entriesOn(
-  entries: readonly Entry[],
-  dateKey: string
-): Entry[] {
-  return entries.filter((e) => e.date === dateKey);
-}
-
 /** 저장된 순서를 믿지 않는다. 화면은 왼쪽에서 오른쪽으로 시간이 흐른다고 읽는다. */
 export function entriesInMonth(
   entries: readonly Entry[],
@@ -44,14 +53,6 @@ export function entriesInMonth(
   return entries
     .filter((e) => monthKeyOf(e.date) === monthKey)
     .sort((a, b) => a.date.localeCompare(b.date));
-}
-
-/** 하루에 한 사람당 하나다. 날짜만 보고 지우면 같은 날 상대가 담은 것까지 사라진다. */
-export function upsertEntry(entries: readonly Entry[], entry: Entry): Entry[] {
-  const others = entries.filter(
-    (e) => e.date !== entry.date || e.author !== entry.author
-  );
-  return [...others, entry].sort((a, b) => a.date.localeCompare(b.date));
 }
 
 export function monthLabel(dateKey: string): string {
@@ -63,48 +64,29 @@ export function monthTitle(dateKey: string): string {
   return `${year}년 ${Number(month)}월`;
 }
 
-export function entriesFrom(
-  entries: readonly Entry[],
-  view: Company,
-  me: string = ME
-): Entry[] {
-  if (view === 'both') return [...entries];
-  const wantsMine = view === 'mine';
-  return entries.filter((e) => (e.author === me) === wantsMine);
-}
-
-/** 필터를 보여줄지 정한다. 고를 것이 하나뿐인 필터는 화면에 소음만 더한다. */
-export function hasCompany(entries: readonly Entry[], me: string = ME): boolean {
-  return entries.some((e) => e.author !== me);
-}
-
 /** 하루를 양쪽에서 본 것. 둘 다 담았으면 달력 한 칸이 반으로 갈린다. */
 export function sidesOn(
   entries: readonly Entry[],
   dateKey: string,
-  me: string = ME
+  me: string
 ): Sides {
-  const day = entriesOn(entries, dateKey);
+  const day = entries.filter((e) => e.date === dateKey);
   return {
     mine: day.find((e) => e.author === me) ?? null,
     theirs: day.find((e) => e.author !== me) ?? null,
   };
 }
 
-/** 휠이 고를 수 있는 해들. 기록이 있는 가장 이른 해부터 지금 보고 있는 해까지. */
-export function yearsOf(entries: readonly Entry[], shown: number): number[] {
-  const earliest = entries.reduce(
-    (found, e) => Math.min(found, Number(e.date.slice(0, 4))),
-    shown
-  );
+/**
+ * 휠이 고를 수 있는 해들. 기록을 구간으로 나눠 받게 되면서 화면에는 한 달이나
+ * 한 해치만 있다. 가장 이른 해는 서버가 알려주는 처음 담은 날에서 얻는다.
+ */
+export function yearsSince(firstKeptDate: string | null, shown: number): number[] {
+  const earliest = firstKeptDate === null
+    ? shown
+    : Math.min(Number(firstKeptDate.slice(0, 4)), shown);
 
   return Array.from({ length: shown - earliest + 1 }, (_, i) => earliest + i);
-}
-
-export function entriesInYear(entries: readonly Entry[], year: number): Entry[] {
-  return entries
-    .filter((e) => e.date.startsWith(`${year}-`))
-    .sort((a, b) => a.date.localeCompare(b.date));
 }
 
 /**

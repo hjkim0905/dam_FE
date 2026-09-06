@@ -8,19 +8,20 @@ import type { CSSProperties } from 'react';
 import { openOutside, requestHaptic, subscribeToNative } from '@/lib/bridge';
 import { snappedIndex, stripSlots } from '@/lib/carousel';
 import {
-  entriesFrom,
-  sidesOn,
   entriesInMonth,
   monthDayLabel,
   monthKeyOf,
   monthLabel,
+  monthRange,
   monthTitle,
+  sidesOn,
   toDateKey,
-  yearsOf,
+  yearsSince,
 } from '@/lib/entries';
 import type { Entry } from '@/lib/entries';
-import { loadEntries } from '@/lib/entry-store';
-import { forgetEverything } from '@/lib/profile-store';
+import { fetchEntries } from '@/lib/api/entries';
+import { withdraw } from '@/lib/api/me';
+import { useSession } from './session';
 import ConfirmSheet from './confirm-sheet';
 import DayDetail from './day-detail';
 import MeSheet from './me-sheet';
@@ -44,8 +45,10 @@ const DROP_GAP_REM = 0.5;
    눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
 const useBeforePaint =
   typeof window === 'undefined' ? useEffect : useLayoutEffect;
+import useFocusReload from './use-focus-reload';
 
 export default function Home() {
+  const { profile, me, refresh, signOut } = useSession();
   const stripRef = useRef<HTMLDivElement>(null);
   // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
   // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
@@ -56,15 +59,24 @@ export default function Home() {
   const [pickingMonth, setPickingMonth] = useState(false);
   const [opened, setOpened] = useState<MenuAction | null>(null);
 
-  useEffect(() => setEntries(loadEntries()), []);
-
   const today = toDateKey(new Date());
   const monthKey = chosenMonth ?? monthKeyOf(today);
   // 지난 달엔 담을 자리가 없다. 오늘은 이번 달을 보고 있을 때만 자리를 갖는다.
   const todayHere = monthKey === monthKeyOf(today) ? today : null;
 
   // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
-  const thisMonth = entriesInMonth(entriesFrom(entries ?? [], 'mine'), monthKey);
+  // 보고 있는 달만 받아 온다. 전부 받으면 기록이 쌓일수록 느려진다.
+  const load = useCallback(() => {
+    let live = true;
+    fetchEntries(monthRange(monthKey), 'MINE')
+      .then((found) => { if (live) setEntries(found); })
+      .catch(() => { if (live) setEntries([]); });
+    return () => { live = false; };
+  }, [monthKey]);
+
+  useEffect(load, [load]);
+
+  const thisMonth = entriesInMonth(entries ?? [], monthKey);
   const capturedToday = todayHere !== null && thisMonth.some((e) => e.date === today);
   const { slots, todayIndex } = stripSlots(
     thisMonth.map((e) => e.date),
@@ -102,18 +114,20 @@ export default function Home() {
   useEffect(
     () =>
       subscribeToNative((message) => {
-        if (message.type === 'MENU') {
-          const { action } = (message.payload ?? {}) as { action?: MenuAction };
-          if (action && action in DOCUMENTS) openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
-          else if (action) setOpened(action);
-          return;
-        }
-        if (message.type !== 'FOCUS') return;
-        setEntries(loadEntries());
-        showToday();
+        if (message.type !== 'MENU') return;
+        const { action } = (message.payload ?? {}) as { action?: MenuAction };
+        if (action && action in DOCUMENTS) openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
+        else if (action) setOpened(action);
       }),
-    [showToday]
+    []
   );
+
+  const reload = useCallback(() => {
+    load();
+    showToday();
+  }, [load, showToday]);
+
+  useFocusReload(reload, refresh);
 
   const pitchOf = () =>
     (DROP_WIDTH_REM + DROP_GAP_REM) *
@@ -232,24 +246,19 @@ export default function Home() {
         )}
       </section>
 
-      <MeSheet
-        open={opened === 'me'}
-        entries={entries ?? []}
-        onClose={() => setOpened(null)}
-      />
+      <MeSheet open={opened === 'me'} onClose={() => setOpened(null)} />
 
-      <RoomSheet
-        open={opened === 'room'}
-        entries={entries ?? []}
-        onClose={() => setOpened(null)}
-      />
+      <RoomSheet open={opened === 'room'} onClose={() => setOpened(null)} />
 
       <ConfirmSheet
         open={opened === 'signOut'}
         title="로그아웃"
-        detail="담은 기록은 이 기기에 그대로 남아요. 계정이 생기기 전이라 아직 나갈 곳이 없어요."
-        confirm="알겠어요"
-        onConfirm={() => setOpened(null)}
+        detail="담은 기록은 그대로 남아요. 다시 로그인하면 이어서 담을 수 있어요."
+        confirm="로그아웃"
+        onConfirm={() => {
+          setOpened(null);
+          signOut();
+        }}
         onClose={() => setOpened(null)}
       />
 
@@ -260,9 +269,10 @@ export default function Home() {
         confirm="모두 지우기"
         destructive
         onConfirm={() => {
-          forgetEverything();
-          setEntries([]);
-          setOpened(null);
+          void withdraw().finally(() => {
+            setOpened(null);
+            void refresh();
+          });
         }}
         onClose={() => setOpened(null)}
       />
@@ -274,7 +284,7 @@ export default function Home() {
         onClose={() => setPickingMonth(false)}
       >
         <MonthWheel
-          years={yearsOf(entries ?? [], Number(monthKey.slice(0, 4)))}
+          years={yearsSince(profile.firstKeptDate, Number(monthKey.slice(0, 4)))}
           monthKey={monthKey}
           onChange={setChosenMonth}
         />
@@ -286,7 +296,7 @@ export default function Home() {
         onClose={() => setOpenDate(null)}
       >
         {/* 홈은 내 것만 보는 자리다. 상대의 그날은 달력에서 함께 본다. */}
-        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(thisMonth, openDate)} />}
+        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(thisMonth, openDate, me)} />}
       </Sheet>
     </main>
   );

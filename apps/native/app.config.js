@@ -1,5 +1,18 @@
 import { BACKGROUND } from "./theme";
 
+const WEB_URL = process.env.WEB_URL ?? "http://localhost:3000";
+
+/**
+ * 개발에서는 웹이 3000, 서버가 8080 으로 따로 뜬다. 배포에서는 Caddy 가 둘을
+ * 같은 주소로 묶으므로 포트를 건드리면 안 된다. 주소에 포트가 박혀 있는지가
+ * 그 둘을 가르는 표시다. 필요하면 API_URL 로 직접 지정한다.
+ */
+function apiUrlFrom(webUrl) {
+  const url = new URL(webUrl);
+  if (url.port) url.port = "8080";
+  return `${url.origin}/api/v1`;
+}
+
 export default {
   expo: {
     name: "담",
@@ -15,7 +28,9 @@ export default {
     ios: {
       buildNumber: "1",
       supportsTablet: false,
-      bundleIdentifier: "com.company.dam",
+      // Sign in with Apple 권한(entitlement)을 켠다. 이게 없으면 시트가 뜨지 않는다.
+      usesAppleSignIn: true,
+      bundleIdentifier: "com.hjkim.dam",
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
         // 번들이 한국어를 지원한다고 알려야 WebKit 이 사진 선택 시트를 한국어로 그린다.
@@ -29,7 +44,16 @@ export default {
     },
     plugins: [
       "expo-router",
-      "expo-splash-screen",
+      "expo-apple-authentication",
+      [
+        "expo-splash-screen",
+        {
+          image: "./assets/icon_without_background.png",
+          imageWidth: 140,
+          resizeMode: "contain",
+          backgroundColor: BACKGROUND,
+        },
+      ],
       "expo-image",
       ["expo-font", { fonts: ["./assets/Galmuri14.ttf"] }],
       [
@@ -40,7 +64,8 @@ export default {
       ],
     ],
     extra: {
-      webUrl: process.env.WEB_URL ?? "http://localhost:3000",
+      webUrl: WEB_URL,
+      apiUrl: process.env.API_URL ?? apiUrlFrom(WEB_URL),
     },
   },
 };

@@ -4,7 +4,8 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isNativeApp, sendToNative, subscribeToNative } from './bridge';
+import { isNativeApp, sendToNative, subscribeToNative
+} from './bridge';
 
 type Listener = (event: { data: unknown }) => void;
 
@@ -86,3 +87,4 @@ test('window가 없는 SSR 환경에서도 던지지 않는다', () => {
   assert.doesNotThrow(() => sendToNative({ type: 'PING' }));
   assert.doesNotThrow(() => subscribeToNative(() => {})());
 });
+

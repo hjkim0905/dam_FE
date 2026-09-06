@@ -9,8 +9,10 @@ export type HapticStyle = (typeof HAPTIC_STYLES)[number];
 
 export type BridgeCommand =
   | { type: "PING" }
+  | { type: "READY" }
   | { type: "HAPTIC"; style: HapticStyle }
-  | { type: "OPEN_URL"; url: string };
+  | { type: "OPEN_URL"; url: string }
+  | { type: "SIGNED_OUT" };
 
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
@@ -44,10 +46,19 @@ export function decodeCommand(raw: string): BridgeCommand | null {
     case "PING":
       return { type: "PING" };
 
+    // 웹이 첫 화면을 그릴 수 있게 됐다. 스플래시를 내려도 되는 시점이다.
+    case "READY":
+      return { type: "READY" };
+
     case "HAPTIC": {
       const style = memberOf(HAPTIC_STYLES, fieldOf(message.payload, "style"));
       return style ? { type: "HAPTIC", style } : null;
     }
+
+    // 로그아웃, 회원탈퇴, 그리고 토큰이 죽은 것을 웹이 먼저 알아채는 경우다.
+    // 세션은 네이티브가 들고 있으므로 버리는 것도 네이티브가 한다.
+    case "SIGNED_OUT":
+      return { type: "SIGNED_OUT" };
 
     case "OPEN_URL": {
       const url = fieldOf(message.payload, "url");

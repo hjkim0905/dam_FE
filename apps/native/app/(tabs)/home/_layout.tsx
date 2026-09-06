@@ -1,6 +1,6 @@
 import { Stack } from "expo-router";
-import { homeMenu } from "../../utils/menu";
-import { sendToWeb } from "../../utils/web-channel";
+import { homeMenu } from "../../../utils/menu";
+import { sendToWeb } from "../../../utils/web-channel";
 
 /**
  * 헤더는 제목을 그리지 않고 투명하게 둔다. 화면 제목은 웹이 갈무리로 그리므로

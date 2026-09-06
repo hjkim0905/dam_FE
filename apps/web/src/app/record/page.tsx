@@ -7,13 +7,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
-import { ME, toDateKey, upsertEntry } from '@/lib/entries';
-import { loadEntries, saveEntries } from '@/lib/entry-store';
+import { keepEntry } from '@/lib/api/entries';
+import { isApiError } from '@/lib/api/errors';
+import { requestUploadUrl } from '@/lib/api/photos';
+import { toDateKey } from '@/lib/entries';
+import { uploadPhoto } from '@/lib/upload';
 import { coverRect, fitSize, zoomRect } from '@/lib/image';
 import LoadingCapsule from '../loading-capsule';
 
 const MAX_STORED_EDGE = 640;
 const JPEG_QUALITY = 0.6;
+const PHOTO_TYPE = 'image/jpeg';
 const FALLBACK_COLOR = '#c9c5c1';
 
 /* 84 는 배율 3 으로 나누어떨어져야 확대된 픽셀 경계가 반 칸씩 어긋나지 않는다. */
@@ -21,13 +25,20 @@ const LOUPE_EDGE = 84;
 const LOUPE_ZOOM = 3;
 const LOUPE_LIFT = 76;
 
-function toStoredPhoto(bitmap: ImageBitmap): string {
+/**
+ * 서버로 보낼 사진. 데이터 URL 이 아니라 Blob 으로 만든다. base64 로 실으면
+ * 33% 부풀고, 스토리지로 직접 올리려면 어차피 바이트가 필요하다.
+ */
+function toStoredPhoto(bitmap: ImageBitmap): Promise<Blob | null> {
   const { width, height } = fitSize(bitmap, MAX_STORED_EDGE);
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
   canvas.getContext('2d')?.drawImage(bitmap, 0, 0, width, height);
-  return canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+
+  return new Promise((resolve) => {
+    canvas.toBlob(resolve, PHOTO_TYPE, JPEG_QUALITY);
+  });
 }
 
 function drawLoupe(
@@ -72,6 +83,10 @@ export default function Record() {
   const loupeRef = useRef<HTMLCanvasElement>(null);
 
   const [photo, setPhoto] = useState('');
+  const photoBlobRef = useRef<Blob | null>(null);
+  // 담기를 누르는 순간 올리기를 시작한다. 잉크가 번지는 동안 함께 흘러서,
+  // 번짐이 끝날 즈음이면 대개 올라가 있다.
+  const savingRef = useRef<Promise<void> | null>(null);
   const [color, setColor] = useState(FALLBACK_COLOR);
   const [memo, setMemo] = useState('');
   const [picking, setPicking] = useState(false);
@@ -103,6 +118,12 @@ export default function Record() {
   }, [photo]);
 
   useEffect(() => () => bitmapRef.current?.close(), []);
+
+  // 미리보기로 만든 주소는 우리가 놓아 주어야 메모리에서 사라진다.
+  useEffect(() => {
+    if (!photo) return;
+    return () => URL.revokeObjectURL(photo);
+  }, [photo]);
 
   useEffect(() => {
     if (!ink) return;
@@ -137,21 +158,42 @@ export default function Record() {
     });
   }, []);
 
-  const commit = () => {
-    const entry = {
+  const save = async (chosen: string) => {
+    const blob = photoBlobRef.current;
+    if (blob === null) throw new Error('사진이 없다');
+
+    const ticket = await requestUploadUrl({
+      contentType: blob.type,
+      contentLength: blob.size,
+    });
+    await uploadPhoto(ticket.uploadUrl, blob);
+    await keepEntry({
       date: toDateKey(new Date()),
-      color: ink,
-      imageUrl: photo,
-      memo: memo.trim(),
-      author: ME,
-    };
-    if (!saveEntries(upsertEntry(loadEntries(), entry))) {
-      setInk('');
-      setSpread(false);
-      setError('저장 공간이 부족해요. 지난 기록을 정리해 주세요.');
-      return;
-    }
-    router.replace('/#today');
+      color: chosen,
+      photoKey: ticket.photoKey,
+      memo: memo.trim() || undefined,
+    });
+  };
+
+  const start = () => {
+    setError('');
+    savingRef.current = save(color);
+    setInk(color);
+  };
+
+  /** 잉크가 화면을 덮은 뒤에 넘어간다. 올리다 실패하면 번짐을 되돌린다. */
+  const commit = () => {
+    void savingRef.current
+      ?.then(() => router.replace('/#today'))
+      .catch((failure: unknown) => {
+        setInk('');
+        setSpread(false);
+        setError(
+          isApiError(failure)
+            ? failure.message
+            : '담지 못했어요. 잠시 뒤에 다시 시도해 주세요.'
+        );
+      });
   };
 
   return (
@@ -229,7 +271,7 @@ export default function Record() {
 
           <button
             type="button"
-            onClick={() => setInk(color)}
+            onClick={start}
             css={css`
               margin-bottom: 2rem;
               padding: 1.125rem;
@@ -274,7 +316,11 @@ export default function Record() {
                   const bitmap = await createImageBitmap(file);
                   bitmapRef.current?.close();
                   bitmapRef.current = bitmap;
-                  setPhoto(toStoredPhoto(bitmap));
+
+                  const blob = await toStoredPhoto(bitmap);
+                  if (blob === null) throw new Error('사진을 만들지 못했다');
+                  photoBlobRef.current = blob;
+                  setPhoto(URL.createObjectURL(blob));
                 } catch {
                   setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
                 } finally {
@@ -309,6 +355,9 @@ export default function Record() {
           onTransitionEnd={commit}
           css={css`
             position: fixed;
+            /* 양모 테두리(body::before, z-index 10) 위로 번진다. 아래에 두면
+               색이 화면을 덮는 순간에도 테두리만 남아 덜 덮인 것처럼 보인다. */
+            z-index: 30;
             top: 50%;
             left: 50%;
             width: 1.5rem;

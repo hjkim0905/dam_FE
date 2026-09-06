@@ -55,3 +55,15 @@ test("decodeCommand 는 https 링크만 연다", () => {
   assert.equal(open("javascript:alert(1)"), null);
   assert.equal(open("dam://close"), null);
 });
+
+test("세션이 끊겼다는 말을 알아본다", () => {
+  assert.deepEqual(decodeCommand(JSON.stringify({ type: "SIGNED_OUT" })), {
+    type: "SIGNED_OUT",
+  });
+});
+
+test("READY 는 스플래시를 내려도 되는 시점으로 읽힌다", () => {
+  assert.deepEqual(decodeCommand(JSON.stringify({ type: "READY" })), {
+    type: "READY",
+  });
+});

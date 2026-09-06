@@ -2,28 +2,34 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { subscribeToNative } from '@/lib/bridge';
+import Image from 'next/image';
 import { monthCells } from '@/lib/calendar';
 import {
-  entriesFrom,
-  hasCompany,
   monthDayLabel,
   monthKeyOf,
+  monthRange,
   monthTitle,
   sidesOn,
   toDateKey,
-  yearsOf,
+  viewOf,
+  yearsSince,
 } from '@/lib/entries';
 import type { Company, Entry, Sides } from '@/lib/entries';
-import { loadEntries } from '@/lib/entry-store';
+import { fetchEntries } from '@/lib/api/entries';
+import { useSession } from '../session';
 import DayDetail from '../day-detail';
 import CompanyFilter from '../company-filter';
 import MonthWheel from '../month-wheel';
 import Sheet from '../sheet';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/* 칸은 화면 너비의 7분의 1이라 아이폰에서 55pt 안팎이다. next/image 는 이 값과 그 두
+   배를 후보로 내주고 브라우저가 화면 배율에 맞는 쪽을 고른다. 3배 화면이면 256px 가
+   뽑히는데, 165px 짜리 자리에 그 정도면 충분하다. */
+const THUMB = 128;
 function Day({
   dateKey,
   sides,
@@ -50,10 +56,12 @@ function Day({
         {shots.length > 0 && (
           <div css={shotsStyle}>
             {shots.map((entry) => (
-              <img
+              <Image
                 key={entry.author}
                 src={entry.imageUrl}
                 alt={`${label} ${entry === sides.mine ? '내' : '상대'} 사진`}
+                width={THUMB}
+                height={THUMB}
               />
             ))}
           </div>
@@ -76,6 +84,7 @@ function Day({
     </Cell>
   );
 }
+import useFocusReload from '../use-focus-reload';
 
 export default function CalendarScreen() {
   // 홈과 같은 이유로 '아직 모른다' 를 빈 배열과 구분한다. 빈 배열로 두면 첫 페인트에
@@ -86,20 +95,25 @@ export default function CalendarScreen() {
   // 고른 달이 없으면 이번 달이다. 상태로 두어야 휠이 바꿀 자리가 생긴다.
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
-
-  useEffect(() => setEntries(loadEntries()), []);
-
-  useEffect(
-    () =>
-      subscribeToNative((message) => {
-        if (message.type === 'FOCUS') setEntries(loadEntries());
-      }),
-    []
-  );
+  const { profile, me, refresh } = useSession();
 
   const monthKey = chosenMonth ?? monthKeyOf(toDateKey(new Date()));
-  const together = hasCompany(entries ?? []);
-  const shown = entriesFrom(entries ?? [], together ? view : 'both');
+  // 방이 없으면 고를 것이 하나뿐이라 필터를 감춘다. 그때는 서버도 내것만 준다.
+  const together = profile.room !== null && profile.room.partner !== null;
+
+  const load = useCallback(() => {
+    let live = true;
+    fetchEntries(monthRange(monthKey), viewOf(together ? view : 'mine'))
+      .then((found) => { if (live) setEntries(found); })
+      .catch(() => { if (live) setEntries([]); });
+    return () => { live = false; };
+  }, [monthKey, view, together]);
+
+  useEffect(load, [load]);
+
+  useFocusReload(load, refresh);
+
+  const shown = entries ?? [];
 
   return (
     <main css={screenStyle}>
@@ -131,7 +145,7 @@ export default function CalendarScreen() {
                 <Day
                 key={dateKey}
                 dateKey={dateKey}
-                sides={sidesOn(shown, dateKey)}
+                sides={sidesOn(shown, dateKey, me)}
                 onOpen={setOpenDate}
               />
               ) : (
@@ -151,7 +165,7 @@ export default function CalendarScreen() {
         onClose={() => setPickingMonth(false)}
       >
         <MonthWheel
-          years={yearsOf(entries ?? [], Number(monthKey.slice(0, 4)))}
+          years={yearsSince(profile.firstKeptDate, Number(monthKey.slice(0, 4)))}
           monthKey={monthKey}
           onChange={setChosenMonth}
         />
@@ -162,7 +176,7 @@ export default function CalendarScreen() {
         label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
         onClose={() => setOpenDate(null)}
       >
-        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(shown, openDate)} />}
+        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(shown, openDate, me)} />}
       </Sheet>
     </main>
   );

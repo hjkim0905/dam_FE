@@ -1,4 +1,4 @@
-import AppWebView from "../components/AppWebView";
+import AppWebView from "../../components/AppWebView";
 
 export default function Calendar() {
   return <AppWebView path="/calendar" />;

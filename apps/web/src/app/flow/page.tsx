@@ -2,41 +2,39 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useEffect, useState } from 'react';
-import { subscribeToNative } from '@/lib/bridge';
-import {
-  bandOf,
-  entriesFrom,
-  entriesInYear,
-  hasCompany,
-  toDateKey,
-  yearsOf,
-} from '@/lib/entries';
+import { useCallback, useEffect, useState } from 'react';
+import { bandOf, toDateKey, viewOf, yearRange, yearsSince } from '@/lib/entries';
 import type { Company, Entry } from '@/lib/entries';
-import { loadEntries } from '@/lib/entry-store';
+import { fetchEntries } from '@/lib/api/entries';
+import { useSession } from '../session';
 import CompanyFilter from '../company-filter';
 import Sheet from '../sheet';
 import YearWheel from '../year-wheel';
+import useFocusReload from '../use-focus-reload';
 
 export default function Flow() {
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [view, setView] = useState<Company>('both');
   const [chosenYear, setChosenYear] = useState<number | null>(null);
   const [pickingYear, setPickingYear] = useState(false);
-
-  useEffect(() => setEntries(loadEntries()), []);
-
-  useEffect(
-    () =>
-      subscribeToNative((message) => {
-        if (message.type === 'FOCUS') setEntries(loadEntries());
-      }),
-    []
-  );
+  const { profile, refresh } = useSession();
 
   const year = chosenYear ?? Number(toDateKey(new Date()).slice(0, 4));
-  const together = hasCompany(entries ?? []);
-  const shown = entriesInYear(entriesFrom(entries ?? [], together ? view : 'both'), year);
+  const together = profile.room !== null && profile.room.partner !== null;
+
+  const load = useCallback(() => {
+    let live = true;
+    fetchEntries(yearRange(year), viewOf(together ? view : 'mine'))
+      .then((found) => { if (live) setEntries(found); })
+      .catch(() => { if (live) setEntries([]); });
+    return () => { live = false; };
+  }, [year, view, together]);
+
+  useEffect(load, [load]);
+
+  useFocusReload(load, refresh);
+
+  const shown = entries ?? [];
 
   return (
     <main css={screenStyle}>
@@ -82,7 +80,7 @@ export default function Flow() {
         onClose={() => setPickingYear(false)}
       >
         <YearWheel
-          years={yearsOf(entries ?? [], year)}
+          years={yearsSince(profile.firstKeptDate, year)}
           year={year}
           onChange={setChosenYear}
         />

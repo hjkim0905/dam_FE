@@ -4,6 +4,7 @@
 import { css } from '@emotion/react';
 import { useCallback, useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
+import Image from 'next/image';
 import { monthCells } from '@/lib/calendar';
 import {
   monthDayLabel,
@@ -24,6 +25,11 @@ import MonthWheel from '../month-wheel';
 import Sheet from '../sheet';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+
+/* 칸은 화면 너비의 7분의 1이라 아이폰에서 55pt 안팎이다. next/image 는 이 값과 그 두
+   배를 후보로 내주고 브라우저가 화면 배율에 맞는 쪽을 고른다. 3배 화면이면 256px 가
+   뽑히는데, 165px 짜리 자리에 그 정도면 충분하다. */
+const THUMB = 128;
 function Day({
   dateKey,
   sides,
@@ -50,10 +56,12 @@ function Day({
         {shots.length > 0 && (
           <div css={shotsStyle}>
             {shots.map((entry) => (
-              <img
+              <Image
                 key={entry.author}
                 src={entry.imageUrl}
                 alt={`${label} ${entry === sides.mine ? '내' : '상대'} 사진`}
+                width={THUMB}
+                height={THUMB}
               />
             ))}
           </div>

@@ -3,32 +3,39 @@
 
 import { css } from '@emotion/react';
 import { useEffect, useState } from 'react';
-import { entriesFrom, monthDayLabel } from '@/lib/entries';
-import type { Entry } from '@/lib/entries';
+import { renameMe } from '@/lib/api/me';
+import { monthDayLabel } from '@/lib/entries';
 import { cleanName } from '@/lib/profile';
-import { loadProfile, saveProfile } from '@/lib/profile-store';
+import { useSession } from './session';
 import Sheet from './sheet';
 
 export default function MeSheet({
   open,
-  entries,
   onClose,
 }: {
   open: boolean;
-  entries: readonly Entry[];
   onClose: () => void;
 }) {
+  const { profile, refresh } = useSession();
   const [name, setName] = useState('');
 
+  // 방 시트와 같은 이유로 열 때마다 다시 묻는다. 탭마다 웹뷰가 따로 살아서
+  // 다른 탭에서 담거나 방을 맺어도 이 탭의 숫자는 그대로다.
   useEffect(() => {
-    if (open) setName(loadProfile()?.name ?? '');
+    if (!open) return;
+    setName(profile.name ?? '');
+    void refresh();
+    // 열리는 순간의 이름만 채운다. refresh 가 이름을 바꾸면 타이핑 중에 덮인다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const mine = entriesFrom(entries, 'mine');
-  const first = [...mine].sort((a, b) => a.date.localeCompare(b.date))[0];
-
   // 상대에게 보일 이름이라 빈 채로 두면 방에서 누가 누군지 알 수 없다.
-  const keep = () => saveProfile({ name: cleanName(name) });
+  // 고친 것이 없으면 보내지 않는다. 시트를 열었다 닫기만 해도 요청이 나간다.
+  const keep = () => {
+    const next = cleanName(name);
+    if (next === profile.name) return;
+    void renameMe(next).then(refresh);
+  };
 
   return (
     <Sheet open={open} label="내 정보" fill={false} onClose={onClose}>
@@ -49,15 +56,16 @@ export default function MeSheet({
       <dl css={statsStyle}>
         <div>
           <dt>담은 색</dt>
-          <dd>{mine.length}가지</dd>
+          <dd>{profile.keptCount}가지</dd>
         </div>
         <div>
           <dt>처음 담은 날</dt>
-          <dd>{first ? monthDayLabel(first.date) : '아직 없어요'}</dd>
+          <dd>
+            {profile.firstKeptDate ? monthDayLabel(profile.firstKeptDate) : '아직 없어요'}
+          </dd>
         </div>
       </dl>
 
-      <p css={noteStyle}>계정은 아직 이 기기에만 있어요.</p>
     </Sheet>
   );
 }
@@ -102,7 +110,7 @@ const inputStyle = css`
 `;
 
 const statsStyle = css`
-  margin: 0 0 2rem;
+  margin: 0;
 
   div {
     display: flex;
@@ -120,10 +128,4 @@ const statsStyle = css`
     margin: 0;
     font-size: 0.875rem;
   }
-`;
-
-const noteStyle = css`
-  margin: 0;
-  font-size: 0.875rem;
-  color: var(--color-muted);
 `;

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import EmotionProvider from './emotion-provider';
+import SessionProvider from './session';
 import TabReset from './tab-reset';
 import './globals.css';
 
@@ -27,6 +28,9 @@ export const viewport: Viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
+  /* 키보드가 올라오면 화면 높이를 줄여 준다. 이게 없으면 100% 로 잡은 화면이
+     키보드 뒤에 그대로 남아서, 메모나 초대코드를 치는 동안 입력칸이 가려진다. */
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({
@@ -37,7 +41,9 @@ export default function RootLayout({
       <body>
         <TabReset />
         <EmotionProvider>
-          <div id="screen">{children}</div>
+          <div id="screen">
+            <SessionProvider>{children}</SessionProvider>
+          </div>
         </EmotionProvider>
       </body>
     </html>

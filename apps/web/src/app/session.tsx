@@ -5,7 +5,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from 'rea
 import type { ReactNode } from 'react';
 import { fetchProfile } from '@/lib/api/me';
 import type { ProfileResponse } from '@/lib/api/types';
-import { signedOut } from '@/lib/bridge';
+import { ready, signedOut } from '@/lib/bridge';
 import { clearSession, loadToken } from '@/lib/session';
 
 type Session = {
@@ -53,6 +53,7 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
         return;
       }
       setProfile(found);
+      ready();
     } catch {
       leave();
     }

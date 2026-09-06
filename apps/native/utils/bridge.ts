@@ -9,6 +9,7 @@ export type HapticStyle = (typeof HAPTIC_STYLES)[number];
 
 export type BridgeCommand =
   | { type: "PING" }
+  | { type: "READY" }
   | { type: "HAPTIC"; style: HapticStyle }
   | { type: "OPEN_URL"; url: string }
   | { type: "SIGNED_OUT" };
@@ -44,6 +45,10 @@ export function decodeCommand(raw: string): BridgeCommand | null {
   switch (message.type) {
     case "PING":
       return { type: "PING" };
+
+    // 웹이 첫 화면을 그릴 수 있게 됐다. 스플래시를 내려도 되는 시점이다.
+    case "READY":
+      return { type: "READY" };
 
     case "HAPTIC": {
       const style = memberOf(HAPTIC_STYLES, fieldOf(message.payload, "style"));

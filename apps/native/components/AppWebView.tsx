@@ -1,3 +1,4 @@
+import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ForwardRefExoticComponent, RefAttributes } from "react";
 import { StyleSheet, View } from "react-native";
@@ -44,6 +45,12 @@ export default function AppWebView({ path }: { path: string }) {
     const command = decodeCommand(event.nativeEvent.data);
     if (!command) return;
 
+    // 로그인해 둔 사람은 로그인 화면을 거치지 않고 곧장 여기로 온다. 그 길에는
+    // 스플래시를 내리는 자리가 여기밖에 없다.
+    if (command.type === "READY") {
+      void SplashScreen.hideAsync();
+      return;
+    }
     if (command.type === "PING") {
       webViewRef.current?.postMessage(JSON.stringify({ type: "PONG" }));
       return;

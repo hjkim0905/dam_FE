@@ -61,3 +61,9 @@ test("세션이 끊겼다는 말을 알아본다", () => {
     type: "SIGNED_OUT",
   });
 });
+
+test("READY 는 스플래시를 내려도 되는 시점으로 읽힌다", () => {
+  assert.deepEqual(decodeCommand(JSON.stringify({ type: "READY" })), {
+    type: "READY",
+  });
+});

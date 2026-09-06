@@ -17,5 +17,11 @@ export const MUTED = "#7A736E";
  */
 export const FONT = "Galmuri14-Regular";
 
+/** 면과 선에만 쓴다. 웹 globals.css 의 `--color-faint` 와 같은 값. */
+export const FAINT = "#E3E0DD";
+
 /** 선택된 탭 색. 기록한 색들과 경쟁하지 않도록 무채색으로 둔다. */
 export const TINT = "#1A1918";
+
+/** 되돌릴 수 없는 일과 실패에만 쓴다. 웹 globals.css 의 `--color-alert` 와 같은 값. */
+export const ALERT = "#C0392B";

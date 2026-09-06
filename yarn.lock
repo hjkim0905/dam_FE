@@ -3554,6 +3554,11 @@ event-target-shim@^5.0.0:
   resolved "https://registry.yarnpkg.com/event-target-shim/-/event-target-shim-5.0.1.tgz#5d4d3ebdf9583d63a5333ce2deb7480ab2b05789"
   integrity sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==
 
+expo-apple-authentication@^57.0.1:
+  version "57.0.1"
+  resolved "https://registry.yarnpkg.com/expo-apple-authentication/-/expo-apple-authentication-57.0.1.tgz#297cfaf457fc1c570114fc26e176f7bd83b0ef5a"
+  integrity sha512-pqAIaiTa/ycNl+XqNg5UMVT5TBgl6q6djTtoIcUmDItjVBA1IDHsQEs+leo+8+fG5hhuempZLSqBVVn+RJKKWA==
+
 expo-asset@~57.0.12:
   version "57.0.12"
   resolved "https://registry.yarnpkg.com/expo-asset/-/expo-asset-57.0.12.tgz#ab78e5d96b28ffccbe5ce4b8577662af68c2fb55"
@@ -3685,6 +3690,11 @@ expo-router@~57.0.14:
     shallowequal "^1.1.0"
     standard-navigation "^0.0.5"
     vaul "^1.1.2"
+
+expo-secure-store@^57.0.3:
+  version "57.0.3"
+  resolved "https://registry.yarnpkg.com/expo-secure-store/-/expo-secure-store-57.0.3.tgz#fa09026f3b44c0973e09942b6c23462796a21be2"
+  integrity sha512-w7XkSQeUiYXPoKXo1jSrQqql7pyCSyIzOp2k0apsZZBE+RkoLTQIMjcbqc181y6KgupfNnYxkaKe+4MEg94+SA==
 
 expo-server@^57.0.3:
   version "57.0.3"
@@ -4561,6 +4571,11 @@ kleur@^3.0.3:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/kleur/-/kleur-3.0.3.tgz#a79c9ecc86ee1ce3fa6206d1216c501f147fc07e"
   integrity sha512-eTIzlVOSUR+JxdDFepEYcBMtZ9Qqdef+rnzWdRZuMbOywu5tO2w2N7rqjoANZ5k9vywhL6Br1VRjUIgTQx4E8w==
+
+ky@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/ky/-/ky-2.1.0.tgz#c871f28fbd7331ba58d39d9d6af52d1dade01545"
+  integrity sha512-nIKwelw+7qVqKOlX4Eht6GXfEXlDHcdIjyLWV3s119kYt5s+70ayTnYS+0fRNmtgGRRAfqdeWQbh8YizqkS0ng==
 
 lan-network@^0.2.1:
   version "0.2.1"

@@ -1,9 +1,9 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ForwardRefExoticComponent, RefAttributes } from "react";
 import { StyleSheet, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Constants from "expo-constants";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
 import WebViewBase from "react-native-webview";
@@ -14,6 +14,7 @@ import { BACKGROUND } from "../theme";
 import LoadingCapsule from "./LoadingCapsule";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
+import { clearToken, loadToken } from "../lib/session";
 import { holdWeb } from "../utils/web-channel";
 import type { HapticStyle } from "../utils/bridge";
 
@@ -22,7 +23,7 @@ const WebView = WebViewBase as unknown as ForwardRefExoticComponent<
 >;
 
 const WEB_URL: string = Constants.expoConfig?.extra?.webUrl;
-
+const API_URL: string = Constants.expoConfig?.extra?.apiUrl;
 
 const PLAY_HAPTIC: Record<HapticStyle, () => Promise<void>> = {
   selection: () => Haptics.selectionAsync(),
@@ -33,6 +34,11 @@ const PLAY_HAPTIC: Record<HapticStyle, () => Promise<void>> = {
 export default function AppWebView({ path }: { path: string }) {
   const webViewRef = useRef<WebViewInstance>(null);
   const insets = useSafeAreaInsets();
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    void loadToken().then(setToken);
+  }, []);
 
   const onMessage = useCallback((event: WebViewMessageEvent) => {
     const command = decodeCommand(event.nativeEvent.data);
@@ -44,6 +50,9 @@ export default function AppWebView({ path }: { path: string }) {
     }
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
     if (command.type === "OPEN_URL") Linking.openURL(command.url);
+    if (command.type === "SIGNED_OUT") {
+      void clearToken().then(() => router.replace("/"));
+    }
   }, []);
 
   // 탭마다 WebView 가 따로 살아 있어 화면 상태가 그대로 남는다. 드나든 사실은
@@ -62,6 +71,9 @@ export default function AppWebView({ path }: { path: string }) {
     }, [])
   );
 
+  // 토큰을 읽기 전에 띄우면 웹이 로그인부터 다시 하라고 판단한다.
+  if (token === null) return <View style={styles.screen} />;
+
   return (
     <View style={styles.screen}>
       <WebView
@@ -69,7 +81,9 @@ export default function AppWebView({ path }: { path: string }) {
         source={{ uri: `${WEB_URL}${path}` }}
         style={styles.webview}
         onMessage={onMessage}
-        injectedJavaScriptBeforeContentLoaded={insetVariablesScript(insets)}
+        injectedJavaScriptBeforeContentLoaded={
+          insetVariablesScript(insets) + sessionScript(token) + apiScript()
+        }
         startInLoadingState
         renderLoading={() => <LoadingCapsule />}
         contentInsetAdjustmentBehavior="never"
@@ -82,6 +96,22 @@ export default function AppWebView({ path }: { path: string }) {
       />
     </View>
   );
+}
+
+/**
+ * 세션은 네이티브가 들고 있다. 탭마다 WebView 가 따로 살아서 한쪽이 저장해 두면
+ * 나머지가 못 보기 때문이다. 뜨기 전에 넣어 주면 첫 요청부터 토큰이 붙는다.
+ */
+function sessionScript(token: string): string {
+  return `try { localStorage.setItem('dam.session', ${JSON.stringify(token)}); } catch (e) {} true;`;
+}
+
+/**
+ * 서버 주소도 네이티브가 알려준다. 웹이 따로 들고 있으면 LAN IP 가 바뀔 때마다
+ * 두 군데를 고쳐야 하고, 한쪽만 고치면 로그인은 되는데 화면이 비는 상태가 된다.
+ */
+function apiScript(): string {
+  return `window.__DAM_API__ = ${JSON.stringify(API_URL)}; true;`;
 }
 
 const styles = StyleSheet.create({

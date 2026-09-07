@@ -17,6 +17,7 @@ import Unreachable from "./Unreachable";
 import { storeUrl } from "../lib/store";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
+import { EVENT, forget, track } from "../lib/analytics";
 import { clearToken, loadToken } from "../lib/session";
 import { holdWeb } from "../utils/web-channel";
 import type { HapticStyle } from "../utils/bridge";
@@ -64,6 +65,7 @@ export default function AppWebView({ path }: { path: string }) {
       if (url) Linking.openURL(url);
     }
     if (command.type === "SIGNED_OUT") {
+      forget();
       void clearToken().then(() => router.replace("/"));
     }
   }, []);
@@ -104,7 +106,10 @@ export default function AppWebView({ path }: { path: string }) {
         //
         // 여기까지 오면 웹이 READY 를 보낼 일이 없다. 스플래시를 직접 내리지
         // 않으면 오류 화면이 6초 동안 가려진 채로 있는다.
-        onError={() => void SplashScreen.hideAsync()}
+        onError={() => {
+          track(EVENT.webUnreachable);
+          void SplashScreen.hideAsync();
+        }}
         renderError={() => <Unreachable onRetry={() => webViewRef.current?.reload()} />}
         contentInsetAdjustmentBehavior="never"
         webviewDebuggingEnabled={__DEV__}

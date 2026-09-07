@@ -3,6 +3,8 @@
 
 import { css } from '@emotion/react';
 import { useEffect, useState } from 'react';
+import { EVENT } from '@/lib/analytics';
+import { track } from '@/lib/track';
 import { isApiError } from '@/lib/api/errors';
 import { issueInvite, joinRoom, leaveRoom } from '@/lib/api/rooms';
 import { requestHaptic } from '@/lib/bridge';
@@ -52,7 +54,12 @@ export default function RoomSheet({
   };
 
   const make = () => {
-    void run(issueInvite().then(({ code: issued }) => setInvite(issued))).catch(() => {});
+    void run(
+      issueInvite().then(({ code: issued }) => {
+        track(EVENT.inviteIssued);
+        setInvite(issued);
+      })
+    ).catch(() => {});
   };
 
   /** 링크가 아니라 코드다. 어떤 메신저로 보내든 글자는 살아남는다. */
@@ -61,6 +68,7 @@ export default function RoomSheet({
     void navigator.clipboard
       .writeText(invite)
       .then(() => {
+        track(EVENT.inviteCopied);
         setCopied(true);
         requestHaptic('light');
       })
@@ -68,11 +76,17 @@ export default function RoomSheet({
   };
 
   const join = () => {
-    void run(joinRoom(code).then(refresh)).catch(() => {});
+    void run(joinRoom(code).then(refresh))
+      .then(() => track(EVENT.roomJoined))
+      .catch((error: unknown) => {
+        track(EVENT.roomJoinFailed, { reason: isApiError(error) ? error.code : 'unknown' });
+      });
   };
 
   const leave = () => {
-    void run(leaveRoom().then(refresh)).catch(() => {});
+    void run(leaveRoom().then(refresh))
+      .then(() => track(EVENT.roomLeft))
+      .catch(() => {});
   };
 
   return (

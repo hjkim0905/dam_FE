@@ -26,6 +26,8 @@ import {
 } from "@/lib/entries";
 import type { Entry } from "@/lib/entries";
 import { fetchEntries } from "@/lib/api/entries";
+import { EVENT } from "@/lib/analytics";
+import { track } from "@/lib/track";
 import { withdraw } from "@/lib/api/me";
 import { useSession } from "./session";
 import LoadFailed from "./load-failed";
@@ -136,8 +138,10 @@ export default function Home() {
       subscribeToNative((message) => {
         if (message.type !== "MENU") return;
         const { action } = (message.payload ?? {}) as { action?: MenuAction };
-        if (action && action in DOCUMENTS)
+        if (action && action in DOCUMENTS) {
+          track(EVENT.documentOpened, { which: action });
           openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
+        }
         else if (action) setOpened(action);
       }),
     [],
@@ -288,6 +292,7 @@ export default function Home() {
         detail="담은 기록은 그대로 남아요. 다시 로그인하면 이어서 담을 수 있어요."
         confirm="로그아웃"
         onConfirm={() => {
+          track(EVENT.signedOut);
           setOpened(null);
           signOut();
         }}
@@ -301,6 +306,7 @@ export default function Home() {
         confirm="모두 지우기"
         destructive
         onConfirm={() => {
+          track(EVENT.accountDeleted);
           void withdraw().finally(() => {
             setOpened(null);
             void refresh();

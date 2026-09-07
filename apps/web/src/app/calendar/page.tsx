@@ -18,6 +18,8 @@ import {
 } from '@/lib/entries';
 import type { Company, Entry, Sides } from '@/lib/entries';
 import { fetchEntries } from '@/lib/api/entries';
+import { EVENT } from '@/lib/analytics';
+import { track } from '@/lib/track';
 import { useSession } from '../session';
 import LoadFailed from '../load-failed';
 import DayDetail from '../day-detail';
@@ -114,6 +116,10 @@ export default function CalendarScreen() {
 
   useEffect(load, [load]);
 
+  useEffect(() => {
+    track(EVENT.calendarViewed, { month: monthKey, together });
+  }, [monthKey, together]);
+
   useFocusReload(load, refresh);
 
   const shown = entries ?? [];
@@ -122,7 +128,10 @@ export default function CalendarScreen() {
     <main css={screenStyle}>
       <button
         type="button"
-        onClick={() => setPickingMonth(true)}
+        onClick={() => {
+          track(EVENT.monthChanged, { from: monthKey });
+          setPickingMonth(true);
+        }}
         aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
         css={titleStyle}
       >
@@ -134,7 +143,15 @@ export default function CalendarScreen() {
 
       {failed ? <LoadFailed onRetry={load} /> : entries === null ? null : (
         <>
-          {together && <CompanyFilter view={view} onChange={setView} />}
+          {together && (
+            <CompanyFilter
+              view={view}
+              onChange={(next) => {
+                track(EVENT.viewFiltered, { view: next });
+                setView(next);
+              }}
+            />
+          )}
 
           <div css={weekdayStyle} aria-hidden>
             {WEEKDAYS.map((day) => (
@@ -149,7 +166,14 @@ export default function CalendarScreen() {
                 key={dateKey}
                 dateKey={dateKey}
                 sides={sidesOn(shown, dateKey, me)}
-                onOpen={setOpenDate}
+                onOpen={(date) => {
+                  const on = sidesOn(shown, date, me);
+                  track(EVENT.dayOpened, {
+                    has_mine: on.mine !== null,
+                    has_theirs: on.theirs !== null,
+                  });
+                  setOpenDate(date);
+                }}
               />
               ) : (
                 // 1일 앞의 빈 자리. 날짜가 없으니 키로 쓸 것도 자리 순서뿐이다.

@@ -3,7 +3,9 @@
 
 import { css } from '@emotion/react';
 import { useEffect, useState } from 'react';
+import { EVENT } from '@/lib/analytics';
 import { renameMe } from '@/lib/api/me';
+import { track } from '@/lib/track';
 import { monthDayLabel } from '@/lib/entries';
 import { cleanName } from '@/lib/profile';
 import { useSession } from './session';
@@ -34,6 +36,7 @@ export default function MeSheet({
   const keep = () => {
     const next = cleanName(name);
     if (next === profile.name) return;
+    track(EVENT.nameChanged, { had_name: profile.name !== null });
     void renameMe(next).then(refresh);
   };
 

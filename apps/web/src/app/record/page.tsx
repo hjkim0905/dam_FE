@@ -7,9 +7,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
+import { EVENT, memoShape } from '@/lib/analytics';
 import { keepEntry } from '@/lib/api/entries';
 import { isApiError } from '@/lib/api/errors';
 import { requestUploadUrl } from '@/lib/api/photos';
+import { track } from '@/lib/track';
 import { toDateKey } from '@/lib/entries';
 import { uploadPhoto } from '@/lib/upload';
 import { coverRect, fitSize, zoomRect } from '@/lib/image';
@@ -94,6 +96,8 @@ export default function Record() {
   const [spread, setSpread] = useState(false);
   const [reading, setReading] = useState(false);
   const [error, setError] = useState('');
+  // 평균색을 그대로 둔 사람과 직접 집은 사람은 다른 행동을 한 것이다.
+  const pickedByHandRef = useRef(false);
 
   useEffect(() => {
     const box = photoRef.current;
@@ -116,6 +120,10 @@ export default function Record() {
     const average = averageColor(pixels.data);
     setColor(average ? rgbToHex(average) : FALLBACK_COLOR);
   }, [photo]);
+
+  useEffect(() => {
+    track(EVENT.recordOpened);
+  }, []);
 
   useEffect(() => () => bitmapRef.current?.close(), []);
 
@@ -152,6 +160,7 @@ export default function Record() {
     );
 
     const next = rgbToHex(picked);
+    pickedByHandRef.current = true;
     setColor((current) => {
       if (current !== next) requestHaptic('selection');
       return next;
@@ -177,6 +186,7 @@ export default function Record() {
 
   const start = () => {
     setError('');
+    track(EVENT.colorPicked, { by_hand: pickedByHandRef.current, ...memoShape(memo) });
     savingRef.current = save(color);
     setInk(color);
   };
@@ -184,8 +194,14 @@ export default function Record() {
   /** 잉크가 화면을 덮은 뒤에 넘어간다. 올리다 실패하면 번짐을 되돌린다. */
   const commit = () => {
     void savingRef.current
-      ?.then(() => router.replace('/#today'))
+      ?.then(() => {
+        track(EVENT.entryKept, { by_hand: pickedByHandRef.current, ...memoShape(memo) });
+        router.replace('/#today');
+      })
       .catch((failure: unknown) => {
+        track(EVENT.entryFailed, {
+          reason: isApiError(failure) ? failure.code : 'unknown',
+        });
         setInk('');
         setSpread(false);
         setError(
@@ -321,7 +337,9 @@ export default function Record() {
                   if (blob === null) throw new Error('사진을 만들지 못했다');
                   photoBlobRef.current = blob;
                   setPhoto(URL.createObjectURL(blob));
+                  track(EVENT.photoPicked, { bytes: blob.size });
                 } catch {
+                  track(EVENT.photoPicked, { failed: true });
                   setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
                 } finally {
                   setReading(false);

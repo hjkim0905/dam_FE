@@ -3,10 +3,13 @@
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { isSessionGone, needsUpdate } from '@/lib/api/errors';
 import { fetchProfile } from '@/lib/api/me';
 import type { ProfileResponse } from '@/lib/api/types';
-import { ready, signedOut } from '@/lib/bridge';
+import { openStore, ready, signedOut } from '@/lib/bridge';
 import { clearSession, loadToken } from '@/lib/session';
+import Unreachable from './unreachable';
+import UpdateRequired from './update-required';
 
 type Session = {
   profile: ProfileResponse;
@@ -33,6 +36,8 @@ export function useSession(): Session {
  */
 export default function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [unreachable, setUnreachable] = useState(false);
+  const [outdated, setOutdated] = useState(false);
 
   const leave = useCallback(() => {
     clearSession();
@@ -52,10 +57,25 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
         leave();
         return;
       }
+      setUnreachable(false);
       setProfile(found);
       ready();
-    } catch {
-      leave();
+    } catch (error) {
+      // 토큰이 죽은 것과 연결이 끊긴 것은 다르다. 끊긴 것으로 세션을 버리면
+      // 지하철에서 앱을 연 사람이 애플 로그인부터 다시 해야 한다.
+      if (isSessionGone(error)) {
+        leave();
+        return;
+      }
+      // 버전이 낡은 것은 연결 문제가 아니다. 다시 시도해 봐야 같은 답이 온다.
+      if (needsUpdate(error)) {
+        setOutdated(true);
+        ready();
+        return;
+      }
+      setUnreachable(true);
+      // 그릴 것이 생겼으니 스플래시를 내린다. 알리지 않으면 6초를 기다린다.
+      ready();
     }
   }, [leave]);
 
@@ -63,7 +83,8 @@ export default function SessionProvider({ children }: { children: ReactNode }) {
     void refresh();
   }, [refresh]);
 
-  if (profile === null) return null;
+  if (outdated) return <UpdateRequired onUpdate={openStore} />;
+  if (profile === null) return unreachable ? <Unreachable onRetry={refresh} /> : null;
 
   return (
     <SessionContext.Provider

@@ -59,6 +59,11 @@ export function ready(): void {
   sendToNative({ type: 'READY' });
 }
 
+/** 앱스토어는 웹뷰가 열 수 없다. 여는 것도, 어느 앱인지 아는 것도 네이티브다. */
+export function openStore(): void {
+  sendToNative({ type: 'OPEN_STORE' });
+}
+
 /** 약관과 방침은 앱 밖 문서다. 웹뷰 안에서 열면 돌아올 길이 없다. */
 export function openOutside(url: string): void {
   sendToNative({ type: 'OPEN_URL', payload: { url } });

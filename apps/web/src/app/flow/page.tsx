@@ -7,6 +7,7 @@ import { bandOf, toDateKey, viewOf, yearRange, yearsSince } from '@/lib/entries'
 import type { Company, Entry } from '@/lib/entries';
 import { fetchEntries } from '@/lib/api/entries';
 import { useSession } from '../session';
+import LoadFailed from '../load-failed';
 import CompanyFilter from '../company-filter';
 import Sheet from '../sheet';
 import YearWheel from '../year-wheel';
@@ -14,6 +15,7 @@ import useFocusReload from '../use-focus-reload';
 
 export default function Flow() {
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [view, setView] = useState<Company>('both');
   const [chosenYear, setChosenYear] = useState<number | null>(null);
   const [pickingYear, setPickingYear] = useState(false);
@@ -25,8 +27,9 @@ export default function Flow() {
   const load = useCallback(() => {
     let live = true;
     fetchEntries(yearRange(year), viewOf(together ? view : 'mine'))
-      .then((found) => { if (live) setEntries(found); })
-      .catch(() => { if (live) setEntries([]); });
+      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
+      // 빈 배열로 넘기면 화면이 "아직 담은 색이 없어요" 라고 거짓말한다.
+      .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [year, view, together]);
 
@@ -52,7 +55,7 @@ export default function Flow() {
         </button>
       </h1>
 
-      {entries === null ? null : (
+      {failed ? <LoadFailed onRetry={load} /> : entries === null ? null : (
         <>
           {together && <CompanyFilter view={view} onChange={setView} />}
 

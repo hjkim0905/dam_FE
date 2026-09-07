@@ -8,6 +8,8 @@ declare global {
   interface Window {
     /** 네이티브가 웹뷰에 넣어 주는 서버 주소. 앱 안에서는 이것이 우선한다. */
     __DAM_API__?: string;
+    /** 앱 버전. 서버가 낡은 앱을 가려내는 데 쓴다. */
+    __DAM_VERSION__?: string;
   }
 }
 
@@ -39,6 +41,9 @@ const http = ky.create({
       ({ request }) => {
         const token = loadToken();
         if (token) request.headers.set('Authorization', `Bearer ${token}`);
+        // 서버가 낡은 앱을 가려내려면 어느 버전에서 왔는지 알아야 한다.
+        const version = typeof window === 'undefined' ? undefined : window.__DAM_VERSION__;
+        if (version) request.headers.set('X-App-Version', version);
       },
     ],
     afterResponse: [

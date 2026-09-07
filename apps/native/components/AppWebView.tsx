@@ -13,6 +13,8 @@ import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes";
 import { BACKGROUND } from "../theme";
 import LoadingCapsule from "./LoadingCapsule";
+import Unreachable from "./Unreachable";
+import { storeUrl } from "../lib/store";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
 import { clearToken, loadToken } from "../lib/session";
@@ -57,6 +59,10 @@ export default function AppWebView({ path }: { path: string }) {
     }
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
     if (command.type === "OPEN_URL") Linking.openURL(command.url);
+    if (command.type === "OPEN_STORE") {
+      const url = storeUrl(Constants.expoConfig?.extra?.appStoreId ?? "");
+      if (url) Linking.openURL(url);
+    }
     if (command.type === "SIGNED_OUT") {
       void clearToken().then(() => router.replace("/"));
     }
@@ -93,6 +99,13 @@ export default function AppWebView({ path }: { path: string }) {
         }
         startInLoadingState
         renderLoading={() => <LoadingCapsule />}
+        // 웹뷰가 페이지를 못 받으면 iOS 가 영문 오류 페이지를 그린다. 그 순간
+        // 앱이 아니라 브라우저로 보이므로 우리 화면으로 덮는다.
+        //
+        // 여기까지 오면 웹이 READY 를 보낼 일이 없다. 스플래시를 직접 내리지
+        // 않으면 오류 화면이 6초 동안 가려진 채로 있는다.
+        onError={() => void SplashScreen.hideAsync()}
+        renderError={() => <Unreachable onRetry={() => webViewRef.current?.reload()} />}
         contentInsetAdjustmentBehavior="never"
         webviewDebuggingEnabled={__DEV__}
         scalesPageToFit={false}
@@ -118,7 +131,11 @@ function sessionScript(token: string): string {
  * 두 군데를 고쳐야 하고, 한쪽만 고치면 로그인은 되는데 화면이 비는 상태가 된다.
  */
 function apiScript(): string {
-  return `window.__DAM_API__ = ${JSON.stringify(API_URL)}; true;`;
+  const version = Constants.expoConfig?.version ?? "";
+  return (
+    `window.__DAM_API__ = ${JSON.stringify(API_URL)};` +
+    `window.__DAM_VERSION__ = ${JSON.stringify(version)}; true;`
+  );
 }
 
 const styles = StyleSheet.create({

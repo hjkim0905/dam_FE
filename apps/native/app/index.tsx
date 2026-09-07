@@ -4,7 +4,7 @@ import * as SplashScreen from "expo-splash-screen";
 import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import Entrance from "../components/Entrance";
-import { ApiError, fetchProfile, signInWithApple } from "../lib/api";
+import { ApiError, fetchProfile, isSessionGone, signInWithApple } from "../lib/api";
 import { clearToken, loadToken, saveToken } from "../lib/session";
 import { ALERT, FONT, MUTED } from "../theme";
 
@@ -29,9 +29,11 @@ export default function SignIn() {
     try {
       const profile = await fetchProfile(token);
       router.replace(profile.onboarded ? "/home" : "/onboarding");
-    } catch {
-      // 토큰이 죽었거나 서버에 닿지 못했다. 어느 쪽이든 로그인부터 다시 한다.
-      await clearToken();
+    } catch (error) {
+      // 토큰이 죽은 것만 버린다. 서버에 닿지 못한 것까지 같이 버리면, 지하철에서
+      // 앱을 연 사람이 저장된 토큰을 잃고 애플 로그인부터 다시 해야 한다.
+      if (isSessionGone(error)) await clearToken();
+      else setFailed("연결이 닿지 않아요. 잠시 뒤에 다시 열어 주세요");
       await SplashScreen.hideAsync();
     }
   }, []);

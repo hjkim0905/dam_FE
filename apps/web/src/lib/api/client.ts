@@ -1,6 +1,7 @@
 import ky from 'ky';
 import { HTTPError, TimeoutError } from 'ky';
 import type { Options } from 'ky';
+import { currentZone } from '../timezone';
 import { clearSession, loadToken } from '../session';
 import { ApiError, OFFLINE, readErrorBody } from './errors';
 
@@ -44,6 +45,9 @@ const http = ky.create({
         // 서버가 낡은 앱을 가려내려면 어느 버전에서 왔는지 알아야 한다.
         const version = typeof window === 'undefined' ? undefined : window.__DAM_VERSION__;
         if (version) request.headers.set('X-App-Version', version);
+        // 오늘이 언제인지는 서버가 아니라 이 사람이 선 자리가 정한다.
+        const zone = currentZone();
+        if (zone) request.headers.set('X-Timezone', zone);
       },
     ],
     afterResponse: [

@@ -1,12 +1,18 @@
 /** @jsxImportSource @emotion/react */
-'use client';
+"use client";
 
-import { css } from '@emotion/react';
-import Link from 'next/link';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { CSSProperties } from 'react';
-import { openOutside, requestHaptic, subscribeToNative } from '@/lib/bridge';
-import { snappedIndex, stripSlots } from '@/lib/carousel';
+import { css } from "@emotion/react";
+import Link from "next/link";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
+import type { CSSProperties } from "react";
+import { openOutside, requestHaptic, subscribeToNative } from "@/lib/bridge";
+import { snappedIndex, stripSlots } from "@/lib/carousel";
 import {
   entriesInMonth,
   monthDayLabel,
@@ -17,26 +23,27 @@ import {
   sidesOn,
   toDateKey,
   yearsSince,
-} from '@/lib/entries';
-import type { Entry } from '@/lib/entries';
-import { fetchEntries } from '@/lib/api/entries';
-import { withdraw } from '@/lib/api/me';
-import { useSession } from './session';
-import LoadFailed from './load-failed';
-import ConfirmSheet from './confirm-sheet';
-import DayDetail from './day-detail';
-import MeSheet from './me-sheet';
-import MonthWheel from './month-wheel';
-import RoomSheet from './room-sheet';
-import Sheet from './sheet';
+} from "@/lib/entries";
+import type { Entry } from "@/lib/entries";
+import { fetchEntries } from "@/lib/api/entries";
+import { withdraw } from "@/lib/api/me";
+import { useSession } from "./session";
+import LoadFailed from "./load-failed";
+import ConfirmSheet from "./confirm-sheet";
+import DayDetail from "./day-detail";
+import MeSheet from "./me-sheet";
+import MonthWheel from "./month-wheel";
+import RoomSheet from "./room-sheet";
+import Sheet from "./sheet";
 
-type MenuAction = 'me' | 'room' | 'privacy' | 'terms' | 'contact' | 'signOut' | 'deleteAccount';
+type MenuAction =
+  "me" | "room" | "privacy" | "terms" | "contact" | "signOut" | "deleteAccount";
 
 /* 앱 밖 문서라 웹뷰가 아니라 사파리로 나간다. 주소가 바뀌면 여기만 고친다. */
-const DOCUMENTS: Record<'privacy' | 'terms' | 'contact', string> = {
-  privacy: 'https://www.notion.so/dam-privacy',
-  terms: 'https://www.notion.so/dam-terms',
-  contact: 'https://www.notion.so/dam-contact',
+const DOCUMENTS: Record<"privacy" | "terms" | "contact", string> = {
+  privacy: "https://www.notion.so/dam-privacy",
+  terms: "https://www.notion.so/dam-terms",
+  contact: "https://www.notion.so/dam-contact",
 };
 
 const DROP_WIDTH_REM = 4;
@@ -45,8 +52,8 @@ const DROP_GAP_REM = 0.5;
 /* 자리를 잡는 일은 그려지기 전에 끝나야 한다. useEffect 는 페인트 뒤라 옮기는 게
    눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
 const useBeforePaint =
-  typeof window === 'undefined' ? useEffect : useLayoutEffect;
-import useFocusReload from './use-focus-reload';
+  typeof window === "undefined" ? useEffect : useLayoutEffect;
+import useFocusReload from "./use-focus-reload";
 
 export default function Home() {
   const { profile, me, refresh, signOut } = useSession();
@@ -70,20 +77,30 @@ export default function Home() {
   // 보고 있는 달만 받아 온다. 전부 받으면 기록이 쌓일수록 느려진다.
   const load = useCallback(() => {
     let live = true;
-    fetchEntries(monthRange(monthKey), 'MINE')
-      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
+    fetchEntries(monthRange(monthKey), "MINE")
+      .then((found) => {
+        if (live) {
+          setFailed(false);
+          setEntries(found);
+        }
+      })
       // 빈 배열로 넘기면 화면이 "0방울의 기록" 이라고 거짓말한다.
-      .catch(() => { if (live) setFailed(true); });
-    return () => { live = false; };
+      .catch(() => {
+        if (live) setFailed(true);
+      });
+    return () => {
+      live = false;
+    };
   }, [monthKey]);
 
   useEffect(load, [load]);
 
   const thisMonth = entriesInMonth(entries ?? [], monthKey);
-  const capturedToday = todayHere !== null && thisMonth.some((e) => e.date === today);
+  const capturedToday =
+    todayHere !== null && thisMonth.some((e) => e.date === today);
   const { slots, todayIndex } = stripSlots(
     thisMonth.map((e) => e.date),
-    capturedToday ? today : todayHere
+    capturedToday ? today : todayHere,
   );
 
   const showToday = useCallback(() => {
@@ -93,9 +110,9 @@ export default function Home() {
 
     // 좌표로 계산하면 방울 너비·루트 폰트 크기·좌우 패딩이 전부 예상대로여야 맞는다.
     // 스트립의 smooth 는 방울을 눌러 데려올 때의 것이라, 돌려놓을 때만 끈다.
-    strip.style.scrollBehavior = 'auto';
-    target.scrollIntoView({ inline: 'center', block: 'nearest' });
-    strip.style.scrollBehavior = '';
+    strip.style.scrollBehavior = "auto";
+    target.scrollIntoView({ inline: "center", block: "nearest" });
+    strip.style.scrollBehavior = "";
     setCentered(todayIndex);
   }, [slots, todayIndex]);
 
@@ -117,12 +134,13 @@ export default function Home() {
   useEffect(
     () =>
       subscribeToNative((message) => {
-        if (message.type !== 'MENU') return;
+        if (message.type !== "MENU") return;
         const { action } = (message.payload ?? {}) as { action?: MenuAction };
-        if (action && action in DOCUMENTS) openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
+        if (action && action in DOCUMENTS)
+          openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
         else if (action) setOpened(action);
       }),
-    []
+    [],
   );
 
   const reload = useCallback(() => {
@@ -142,7 +160,7 @@ export default function Home() {
     const next = snappedIndex(strip.scrollLeft, pitchOf(), slots);
     if (next === centered) return;
     setCentered(next);
-    requestHaptic('selection');
+    requestHaptic("selection");
   };
 
   return (
@@ -168,10 +186,10 @@ export default function Home() {
             aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
             css={titleStyle}
           >
-          {monthLabel(monthKey)}의 색
-          <span css={chevronStyle} aria-hidden>
-            ▼
-          </span>
+            {monthLabel(monthKey)}의 색
+            <span css={chevronStyle} aria-hidden>
+              ▼
+            </span>
           </button>
         </h1>
         <p
@@ -181,81 +199,91 @@ export default function Home() {
             color: var(--color-muted);
           `}
         >
-          {entries === null ? '\u00a0' : `${thisMonth.length}방울의 기록`}
+          {entries === null || failed
+            ? "\u00a0"
+            : `${thisMonth.length}방울의 기록`}
         </p>
       </header>
 
-      <section
-        ref={stripRef}
-        onScroll={onScroll}
-        css={css`
-          display: flex;
-          flex: 1;
-          align-items: center;
-          gap: ${DROP_GAP_REM}rem;
-          overflow-x: auto;
-          scroll-snap-type: x mandatory;
-          scroll-behavior: smooth;
-          scrollbar-width: none;
+      {failed ? (
+        <LoadFailed onRetry={load} />
+      ) : (
+        <section
+          ref={stripRef}
+          onScroll={onScroll}
+          css={css`
+            display: flex;
+            flex: 1;
+            align-items: center;
+            gap: ${DROP_GAP_REM}rem;
+            overflow-x: auto;
+            scroll-snap-type: x mandatory;
+            scroll-behavior: smooth;
+            scrollbar-width: none;
 
-          /* 첫 방울과 마지막 방울도 가운데 설 수 있으려면 양끝에 화면 절반만큼의
+            /* 첫 방울과 마지막 방울도 가운데 설 수 있으려면 양끝에 화면 절반만큼의
              여백이 있어야 한다. 패딩으로 주면 WebKit 이 끝쪽 패딩을 scrollWidth 에
              넣지 않아 넘치는 폭이 사라지고 스트립이 아예 스크롤되지 않는다.
              자리를 차지하는 요소로 두면 그 계산에 반드시 들어간다.
              gap 이 이 요소에도 걸리므로 그만큼 빼야 방울이 정확히 가운데 선다. */
-          &::before,
-          &::after {
-            content: '';
-            flex: 0 0 calc(
-              50vw - ${DROP_WIDTH_REM / 2}rem - ${DROP_GAP_REM}rem
-            );
-          }
-
-          &::-webkit-scrollbar {
-            display: none;
-          }
-        `}
-      >
-        {failed && <LoadFailed onRetry={load} />}
-        {!failed && entries !== null &&
-          thisMonth.map((entry, index) => (
-          <button
-            key={entry.date}
-            type="button"
-            aria-label={`${monthDayLabel(entry.date)}의 색`}
-            // 멀리 있는 방울은 먼저 데려온다. 이미 와 있으면 그날을 연다.
-            onClick={(e) => {
-              if (index === centered) setOpenDate(entry.date);
-              else e.currentTarget.scrollIntoView({ inline: 'center', block: 'nearest' });
-            }}
-            css={dropStyle}
-            style={
-              {
-                '--drop-color': entry.color,
-                '--drop-scale': index === centered ? 1 : 0.88,
-              } as CSSProperties
+            &::before,
+            &::after {
+              content: "";
+              flex: 0 0
+                calc(50vw - ${DROP_WIDTH_REM / 2}rem - ${DROP_GAP_REM}rem);
             }
-          />
-          ))}
 
-        {entries !== null && !capturedToday && (
-          <Link
-            href="/record"
-            aria-label="오늘의 색 담기"
-            css={[slotStyle, emptySlotStyle]}
-            style={
-              { '--drop-scale': centered === slots - 1 ? 1 : 0.88 } as CSSProperties
+            &::-webkit-scrollbar {
+              display: none;
             }
-          />
-        )}
-      </section>
+          `}
+        >
+          {entries !== null &&
+            thisMonth.map((entry, index) => (
+              <button
+                key={entry.date}
+                type="button"
+                aria-label={`${monthDayLabel(entry.date)}의 색`}
+                // 멀리 있는 방울은 먼저 데려온다. 이미 와 있으면 그날을 연다.
+                onClick={(e) => {
+                  if (index === centered) setOpenDate(entry.date);
+                  else
+                    e.currentTarget.scrollIntoView({
+                      inline: "center",
+                      block: "nearest",
+                    });
+                }}
+                css={dropStyle}
+                style={
+                  {
+                    "--drop-color": entry.color,
+                    "--drop-scale": index === centered ? 1 : 0.88,
+                  } as CSSProperties
+                }
+              />
+            ))}
 
-      <MeSheet open={opened === 'me'} onClose={() => setOpened(null)} />
+          {entries !== null && !capturedToday && (
+            <Link
+              href="/record"
+              aria-label="오늘의 색 담기"
+              css={[slotStyle, emptySlotStyle]}
+              style={
+                {
+                  "--drop-scale": centered === slots - 1 ? 1 : 0.88,
+                } as CSSProperties
+              }
+            />
+          )}
+        </section>
+      )}
 
-      <RoomSheet open={opened === 'room'} onClose={() => setOpened(null)} />
+      <MeSheet open={opened === "me"} onClose={() => setOpened(null)} />
+
+      <RoomSheet open={opened === "room"} onClose={() => setOpened(null)} />
 
       <ConfirmSheet
-        open={opened === 'signOut'}
+        open={opened === "signOut"}
         title="로그아웃"
         detail="담은 기록은 그대로 남아요. 다시 로그인하면 이어서 담을 수 있어요."
         confirm="로그아웃"
@@ -267,7 +295,7 @@ export default function Home() {
       />
 
       <ConfirmSheet
-        open={opened === 'deleteAccount'}
+        open={opened === "deleteAccount"}
         title="회원탈퇴"
         detail="지금까지 담은 색과 사진, 메모가 모두 지워져요. 되돌릴 수 없어요."
         confirm="모두 지우기"
@@ -288,7 +316,10 @@ export default function Home() {
         onClose={() => setPickingMonth(false)}
       >
         <MonthWheel
-          years={yearsSince(profile.firstKeptDate, Number(monthKey.slice(0, 4)))}
+          years={yearsSince(
+            profile.firstKeptDate,
+            Number(monthKey.slice(0, 4)),
+          )}
           monthKey={monthKey}
           onChange={setChosenMonth}
         />
@@ -296,11 +327,16 @@ export default function Home() {
 
       <Sheet
         open={openDate !== null}
-        label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
+        label={openDate ? `${monthDayLabel(openDate)} 기록` : ""}
         onClose={() => setOpenDate(null)}
       >
         {/* 홈은 내 것만 보는 자리다. 상대의 그날은 달력에서 함께 본다. */}
-        {openDate && <DayDetail dateKey={openDate} sides={sidesOn(thisMonth, openDate, me)} />}
+        {openDate && (
+          <DayDetail
+            dateKey={openDate}
+            sides={sidesOn(thisMonth, openDate, me)}
+          />
+        )}
       </Sheet>
     </main>
   );
@@ -340,7 +376,8 @@ const slotStyle = css`
 const emptySlotStyle = css`
   display: block;
   border: 0.125rem dashed var(--color-faint);
-  transition: transform var(--duration-fast) var(--ease-out-expo),
+  transition:
+    transform var(--duration-fast) var(--ease-out-expo),
     border-color var(--duration-fast) linear;
 
   @media (hover: hover) {
@@ -364,10 +401,10 @@ const dropStyle = css`
     oklch(from var(--drop-color) calc(l - 0.25) calc(c * 0.9) h / 0.45);
 
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
-    background: url('/capsule-shade.png') center / 100% 100% no-repeat;
+    background: url("/capsule-shade.png") center / 100% 100% no-repeat;
     mix-blend-mode: hard-light;
   }
 `;

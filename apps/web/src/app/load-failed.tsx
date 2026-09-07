@@ -18,14 +18,18 @@ export default function LoadFailed({ onRetry }: { onRetry: () => void }) {
   );
 }
 
+/* 남은 공간의 가운데로 두면 화면마다 머리말 높이가 달라 자리가 어긋난다.
+   어느 화면에서 실패했든 같은 자리에 뜨는 편이 덜 놀랍다.
+   글은 화면을 덮지만 뒤의 달 제목은 그대로 누를 수 있어야 한다. */
 const boxStyle = css`
+  position: fixed;
+  inset: 0;
   display: flex;
-  flex: 1;
-  min-height: 0;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1rem;
+  pointer-events: none;
 `;
 
 const textStyle = css`
@@ -35,6 +39,7 @@ const textStyle = css`
 `;
 
 const retryStyle = css`
+  pointer-events: auto;
   padding: 0.625rem 1.5rem;
   border: 0.0625rem solid var(--color-faint);
   border-radius: var(--radius-pill);

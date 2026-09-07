@@ -12,7 +12,8 @@ export type BridgeCommand =
   | { type: "READY" }
   | { type: "HAPTIC"; style: HapticStyle }
   | { type: "OPEN_URL"; url: string }
-  | { type: "SIGNED_OUT" };
+  | { type: "SIGNED_OUT" }
+  | { type: "OPEN_STORE" };
 
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
@@ -59,6 +60,10 @@ export function decodeCommand(raw: string): BridgeCommand | null {
     // 세션은 네이티브가 들고 있으므로 버리는 것도 네이티브가 한다.
     case "SIGNED_OUT":
       return { type: "SIGNED_OUT" };
+
+    // 앱스토어는 웹뷰가 열 수 없다. 어느 앱인지 아는 것도 네이티브뿐이다.
+    case "OPEN_STORE":
+      return { type: "OPEN_STORE" };
 
     case "OPEN_URL": {
       const url = fieldOf(message.payload, "url");

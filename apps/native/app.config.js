@@ -65,6 +65,9 @@ export default {
     ],
     extra: {
       webUrl: WEB_URL,
+      // App Store Connect 에서 앱 레코드를 만들면 숫자 ID 가 나온다. 출시 전에도
+      // 정해지므로 그때 채우면 된다. 비어 있으면 스토어 대신 아무 일도 하지 않는다.
+      appStoreId: process.env.APP_STORE_ID ?? "",
       apiUrl: process.env.API_URL ?? apiUrlFrom(WEB_URL),
     },
   },

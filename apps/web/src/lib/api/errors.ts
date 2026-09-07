@@ -36,6 +36,11 @@ export function isSessionGone(error: unknown): boolean {
   return hasCode(error, 'UNAUTHENTICATED');
 }
 
+/** 서버가 이 버전을 더는 받지 않는다. 다시 시도해도 같은 답이 온다. */
+export function needsUpdate(error: unknown): boolean {
+  return hasCode(error, 'UPDATE_REQUIRED');
+}
+
 export function readErrorBody(body: unknown, status: number): ApiError {
   if (typeof body === 'object' && body !== null) {
     const { code, message } = body as Partial<ErrorBody>;

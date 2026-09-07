@@ -5,6 +5,7 @@ import {
   hasCode,
   isApiError,
   isSessionGone,
+  needsUpdate,
   OFFLINE,
   readErrorBody,
   UNREADABLE,
@@ -53,4 +54,10 @@ test('읽지 못한 401 은 로그아웃의 근거가 되지 않는다', () => {
 test('다른 실패로는 세션을 버리지 않는다', () => {
   assert.equal(isSessionGone(new ApiError('ENTRY_NOT_FOUND', '없어요', 404)), false);
   assert.equal(isSessionGone(new TypeError('네트워크')), false);
+});
+
+test('서버가 버전을 거절하면 업데이트를 알린다', () => {
+  assert.equal(needsUpdate(new ApiError('UPDATE_REQUIRED', '업데이트가 필요해요', 426)), true);
+  assert.equal(needsUpdate(new ApiError(OFFLINE, '연결을 확인해 주세요', 0)), false);
+  assert.equal(needsUpdate(new TypeError('네트워크')), false);
 });

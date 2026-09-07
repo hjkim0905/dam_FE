@@ -4,6 +4,7 @@ import { ApiError } from "./errors";
 export { ApiError, isSessionGone } from "./errors";
 
 const API_URL: string = Constants.expoConfig?.extra?.apiUrl;
+const VERSION: string = Constants.expoConfig?.version ?? "";
 
 export type Profile = {
   id: number;
@@ -25,6 +26,7 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
       ...rest,
       headers: {
         "Content-Type": "application/json",
+        "X-App-Version": VERSION,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...rest.headers,
       },

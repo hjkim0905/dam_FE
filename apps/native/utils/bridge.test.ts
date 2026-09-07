@@ -67,3 +67,9 @@ test("READY 는 스플래시를 내려도 되는 시점으로 읽힌다", () => 
     type: "READY",
   });
 });
+
+test("OPEN_STORE 는 앱스토어를 여는 신호로 읽힌다", () => {
+  assert.deepEqual(decodeCommand(JSON.stringify({ type: "OPEN_STORE" })), {
+    type: "OPEN_STORE",
+  });
+});

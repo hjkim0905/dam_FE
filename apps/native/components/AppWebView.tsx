@@ -14,6 +14,7 @@ import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes"
 import { BACKGROUND } from "../theme";
 import LoadingCapsule from "./LoadingCapsule";
 import Unreachable from "./Unreachable";
+import { storeUrl } from "../lib/store";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
 import { clearToken, loadToken } from "../lib/session";
@@ -58,6 +59,10 @@ export default function AppWebView({ path }: { path: string }) {
     }
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
     if (command.type === "OPEN_URL") Linking.openURL(command.url);
+    if (command.type === "OPEN_STORE") {
+      const url = storeUrl(Constants.expoConfig?.extra?.appStoreId ?? "");
+      if (url) Linking.openURL(url);
+    }
     if (command.type === "SIGNED_OUT") {
       void clearToken().then(() => router.replace("/"));
     }
@@ -126,7 +131,11 @@ function sessionScript(token: string): string {
  * 두 군데를 고쳐야 하고, 한쪽만 고치면 로그인은 되는데 화면이 비는 상태가 된다.
  */
 function apiScript(): string {
-  return `window.__DAM_API__ = ${JSON.stringify(API_URL)}; true;`;
+  const version = Constants.expoConfig?.version ?? "";
+  return (
+    `window.__DAM_API__ = ${JSON.stringify(API_URL)};` +
+    `window.__DAM_VERSION__ = ${JSON.stringify(version)}; true;`
+  );
 }
 
 const styles = StyleSheet.create({

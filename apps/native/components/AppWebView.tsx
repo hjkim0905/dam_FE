@@ -13,6 +13,7 @@ import type { WebViewProps } from "react-native-webview/lib/WebView";
 import type { WebViewMessageEvent } from "react-native-webview/lib/WebViewTypes";
 import { BACKGROUND } from "../theme";
 import LoadingCapsule from "./LoadingCapsule";
+import Unreachable from "./Unreachable";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
 import { clearToken, loadToken } from "../lib/session";
@@ -93,6 +94,13 @@ export default function AppWebView({ path }: { path: string }) {
         }
         startInLoadingState
         renderLoading={() => <LoadingCapsule />}
+        // 웹뷰가 페이지를 못 받으면 iOS 가 영문 오류 페이지를 그린다. 그 순간
+        // 앱이 아니라 브라우저로 보이므로 우리 화면으로 덮는다.
+        //
+        // 여기까지 오면 웹이 READY 를 보낼 일이 없다. 스플래시를 직접 내리지
+        // 않으면 오류 화면이 6초 동안 가려진 채로 있는다.
+        onError={() => void SplashScreen.hideAsync()}
+        renderError={() => <Unreachable onRetry={() => webViewRef.current?.reload()} />}
         contentInsetAdjustmentBehavior="never"
         webviewDebuggingEnabled={__DEV__}
         scalesPageToFit={false}

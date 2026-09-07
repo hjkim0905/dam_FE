@@ -19,6 +19,7 @@ import {
 import type { Company, Entry, Sides } from '@/lib/entries';
 import { fetchEntries } from '@/lib/api/entries';
 import { useSession } from '../session';
+import LoadFailed from '../load-failed';
 import DayDetail from '../day-detail';
 import CompanyFilter from '../company-filter';
 import MonthWheel from '../month-wheel';
@@ -90,6 +91,7 @@ export default function CalendarScreen() {
   // 홈과 같은 이유로 '아직 모른다' 를 빈 배열과 구분한다. 빈 배열로 두면 첫 페인트에
   // 사진 없는 달이 그려졌다가 채워지고, 필터가 뒤늦게 생기며 격자가 아래로 밀린다.
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [view, setView] = useState<Company>('both');
   const [openDate, setOpenDate] = useState<string | null>(null);
   // 고른 달이 없으면 이번 달이다. 상태로 두어야 휠이 바꿀 자리가 생긴다.
@@ -104,8 +106,9 @@ export default function CalendarScreen() {
   const load = useCallback(() => {
     let live = true;
     fetchEntries(monthRange(monthKey), viewOf(together ? view : 'mine'))
-      .then((found) => { if (live) setEntries(found); })
-      .catch(() => { if (live) setEntries([]); });
+      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
+      // 빈 배열로 넘기면 화면이 "아직 담은 색이 없어요" 라고 거짓말한다.
+      .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [monthKey, view, together]);
 
@@ -129,7 +132,7 @@ export default function CalendarScreen() {
         </span>
       </button>
 
-      {entries === null ? null : (
+      {failed ? <LoadFailed onRetry={load} /> : entries === null ? null : (
         <>
           {together && <CompanyFilter view={view} onChange={setView} />}
 

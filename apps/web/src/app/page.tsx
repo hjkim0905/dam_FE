@@ -22,6 +22,7 @@ import type { Entry } from '@/lib/entries';
 import { fetchEntries } from '@/lib/api/entries';
 import { withdraw } from '@/lib/api/me';
 import { useSession } from './session';
+import LoadFailed from './load-failed';
 import ConfirmSheet from './confirm-sheet';
 import DayDetail from './day-detail';
 import MeSheet from './me-sheet';
@@ -53,6 +54,7 @@ export default function Home() {
   // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
   // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
   const [entries, setEntries] = useState<Entry[] | null>(null);
+  const [failed, setFailed] = useState(false);
   const [centered, setCentered] = useState(0);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
@@ -69,8 +71,9 @@ export default function Home() {
   const load = useCallback(() => {
     let live = true;
     fetchEntries(monthRange(monthKey), 'MINE')
-      .then((found) => { if (live) setEntries(found); })
-      .catch(() => { if (live) setEntries([]); });
+      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
+      // 빈 배열로 넘기면 화면이 "0방울의 기록" 이라고 거짓말한다.
+      .catch(() => { if (live) setFailed(true); });
     return () => { live = false; };
   }, [monthKey]);
 
@@ -213,7 +216,8 @@ export default function Home() {
           }
         `}
       >
-        {entries !== null &&
+        {failed && <LoadFailed onRetry={load} />}
+        {!failed && entries !== null &&
           thisMonth.map((entry, index) => (
           <button
             key={entry.date}

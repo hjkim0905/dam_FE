@@ -22,23 +22,32 @@ export default function RootLayout() {
     return () => clearTimeout(timer);
   }, []);
 
-  /* 키가 없으면 client 가 null 이라 provider 가 아무 일도 하지 않는다.
-     화면 자동 수집과 터치 수집은 웹뷰 바깥, 즉 로그인과 온보딩에만 걸린다. */
+  const stack = (
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: BACKGROUND },
+      }}
+    >
+      <Stack.Screen name="index" />
+      <Stack.Screen name="onboarding" />
+      <Stack.Screen name="(tabs)" />
+    </Stack>
+  );
+
+  /* client 를 undefined 로 넘기면 provider 가 apiKey 를 대신 찾다가 오류를 띄운다.
+     키가 없는 곳에서는 provider 자체를 두지 않는 것이 조용하다.
+
+     자동 수집이 닿는 곳은 웹뷰 바깥, 즉 로그인과 온보딩뿐이다. 탭 안쪽은
+     네이티브 입장에서 화면 하나라 웹 PostHog 가 본다. */
+  if (!posthog) return stack;
+
   return (
     <PostHogProvider
-      client={posthog ?? undefined}
+      client={posthog}
       autocapture={{ captureScreens: true, captureTouches: true }}
     >
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: BACKGROUND },
-        }}
-      >
-        <Stack.Screen name="index" />
-        <Stack.Screen name="onboarding" />
-        <Stack.Screen name="(tabs)" />
-      </Stack>
+      {stack}
     </PostHogProvider>
   );
 }

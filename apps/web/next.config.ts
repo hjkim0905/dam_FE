@@ -1,7 +1,15 @@
+import path from 'node:path';
 import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
+  /* 서버에 yarn install 을 하지 않으려고 쓴다. 필요한 node_modules 만 골라 담아
+     주므로 올리는 것이 수십 MB 로 줄고, 서버에 빌드 도구를 두지 않아도 된다.
+     .next/static 과 public 은 따로 복사해야 한다. 이것만 안 챙기면 화면이
+     스타일 없이 뜨는데, 빌드는 초록이라 알아채기 어렵다. */
+  output: 'standalone',
+  /* 워크스페이스 루트가 위에 있어서, 안 잡아 주면 monorepo 밖까지 훑는다. */
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   compiler: {
     emotion: true,
   },

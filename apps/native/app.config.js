@@ -1,6 +1,9 @@
 import { BACKGROUND } from "./theme";
 
-const WEB_URL = process.env.WEB_URL ?? "http://localhost:3000";
+/* 기본값이 배포 주소여야 한다. 로컬만 가리키게 두면 .env 가 없는 곳에서 빌드한
+   앱이 조용히 localhost 를 보러 가고, 그 사실이 흰 화면으로만 드러난다.
+   .env 는 로컬에서 이 값을 덮는 용도로 쓴다. */
+const WEB_URL = process.env.WEB_URL ?? "https://161.33.199.246.nip.io";
 
 /**
  * 개발에서는 웹이 3000, 서버가 8080 으로 따로 뜬다. 배포에서는 Caddy 가 둘을

@@ -18,7 +18,7 @@ function apiUrlFrom(webUrl) {
 
 export default {
   expo: {
-    name: "담",
+    name: "담.",
     slug: "dam",
     version: "1.0.0",
     orientation: "portrait",

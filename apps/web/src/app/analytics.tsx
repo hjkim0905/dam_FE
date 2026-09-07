@@ -10,9 +10,11 @@ import { isNativeApp } from '@/lib/bridge';
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 
 /**
- * 자동 수집(autocapture)과 세션 리플레이를 둘 다 끈 채로 쓴다. 화면에 남의 사진과
- * 메모가 떠 있어서, DOM 을 통째로 긁는 기능은 그대로 유출이 된다. 대신 의미 있는
- * 순간마다 이름 붙은 이벤트를 직접 보낸다.
+ * 자동 수집과 세션 리플레이를 켜 두되, 사진과 메모에는 `ph-no-capture` 를 붙여
+ * 그 자리만 비워 둔다. 그 클래스 하나가 녹화와 오토캡처를 동시에 막는다.
+ *
+ * 이름 붙인 이벤트를 따로 보내는 것은 그대로다. 오토캡처가 주는 것은 "무엇이
+ * 눌렸나" 이고, 우리가 알고 싶은 것은 "담았나" 라서 서로를 대신하지 못한다.
  */
 export default function AnalyticsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
@@ -20,9 +22,12 @@ export default function AnalyticsProvider({ children }: { children: ReactNode })
 
     posthog.init(KEY, {
       api_host: process.env.NEXT_PUBLIC_POSTHOG_HOST ?? 'https://us.i.posthog.com',
-      autocapture: false,
-      disable_session_recording: true,
+      autocapture: true,
       capture_pageview: false,
+      session_recording: {
+        /* 메모칸은 그 사람의 하루라서 글자를 남기지 않는다. */
+        maskAllInputs: true,
+      },
       capture_pageleave: true,
       /* 로그인 전에는 사람을 만들지 않는다. 웹뷰가 뜰 때마다 유령이 하나씩 생긴다. */
       person_profiles: 'identified_only',

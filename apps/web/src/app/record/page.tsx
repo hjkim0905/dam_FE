@@ -246,6 +246,7 @@ export default function Record() {
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              className="ph-no-capture"
               src={photo}
               alt="오늘 담은 사진"
               css={css`
@@ -279,6 +280,7 @@ export default function Record() {
           </p>
 
           <input
+            className="ph-no-capture"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
             placeholder="이 색에 담을 한 줄"

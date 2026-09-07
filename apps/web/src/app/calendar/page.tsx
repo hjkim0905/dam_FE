@@ -60,6 +60,7 @@ function Day({
           <div css={shotsStyle}>
             {shots.map((entry) => (
               <Image
+                className="ph-no-capture"
                 key={entry.author}
                 src={entry.imageUrl}
                 alt={`${label} ${entry === sides.mine ? '내' : '상대'} 사진`}

@@ -25,11 +25,12 @@ function Kept({
       {named && <p css={whoseStyle}>{whose} 담은</p>}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
+        className="ph-no-capture"
         src={entry.imageUrl}
         alt={`${monthDayLabel(dateKey)} ${whose} 담은 사진`}
         css={shotStyle}
       />
-      <p css={saidStyle}>
+      <p className="ph-no-capture" css={saidStyle}>
         <span css={colorStyle} style={{ background: entry.color }} />
         <span>{entry.memo || `${whose} 담은 색`}</span>
       </p>

@@ -18,9 +18,12 @@ export const EVENT = {
   webUnreachable: "web_unreachable",
 } as const;
 
-const KEY: string = Constants.expoConfig?.extra?.posthogKey ?? "";
+/* 개발 중에 찍히는 이벤트가 실제 데이터에 섞이면 수치를 믿을 수 없게 된다.
+   키를 비워 두는 것으로 막으면 Xcode 가 환경변수를 못 봐서 출시 빌드까지 조용해진다.
+   그래서 키는 늘 박아 두고, 보낼지 말지는 여기서 가른다. */
+const KEY: string = __DEV__ ? "" : (Constants.expoConfig?.extra?.posthogKey ?? "");
 
-/** 키가 없으면 아무것도 만들지 않는다. 그것이 로컬의 기본값이다. */
+/** 키가 없으면 클라이언트를 아예 만들지 않는다. track() 이 조용히 아무 일도 안 한다. */
 export const posthog = KEY
   ? new PostHog(KEY, { host: "https://us.i.posthog.com" })
   : null;

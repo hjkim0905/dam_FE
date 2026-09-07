@@ -8,6 +8,9 @@ import { BACKGROUND, FAINT, FONT, MUTED, TINT } from "../theme";
  */
 export default function Unreachable({ onRetry }: { onRetry: () => void }) {
   return (
+    // 웹뷰가 오류 화면을 어디에 끼워 넣든 화면을 꽉 채워야 가운데가 가운데가 된다.
+    // 안전영역만큼 비키지는 않는다. 글 뭉치가 작아 가장자리에 닿을 일이 없고,
+    // 위아래로 다르게 비키면 그만큼 가운데가 아니게 된다.
     <View style={styles.screen}>
       <Text style={styles.heading}>연결이 닿지 않아요</Text>
       <Text style={styles.body}>
@@ -26,7 +29,11 @@ export default function Unreachable({ onRetry }: { onRetry: () => void }) {
 
 const styles = StyleSheet.create({
   screen: {
-    flex: 1,
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
     alignItems: "center",
     justifyContent: "center",
     gap: 24,

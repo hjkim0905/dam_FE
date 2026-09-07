@@ -56,6 +56,7 @@ export default {
       ],
       "expo-image",
       "expo-localization",
+      "./plugins/withKoreanProject",
       ["expo-font", { fonts: ["./assets/Galmuri14.ttf"] }],
       [
         "expo-build-properties",
@@ -66,9 +67,8 @@ export default {
     ],
     extra: {
       webUrl: WEB_URL,
-      // App Store Connect 에서 앱 레코드를 만들면 숫자 ID 가 나온다. 출시 전에도
-      // 정해지므로 그때 채우면 된다. 비어 있으면 스토어 대신 아무 일도 하지 않는다.
-      appStoreId: process.env.APP_STORE_ID ?? "",
+      // 강제 업데이트 화면이 스토어를 여는 데 쓴다. 공개된 값이라 숨길 이유가 없다.
+      appStoreId: process.env.APP_STORE_ID ?? "6809452180",
       // 브라우저 번들에 실려 나가는 것이 정상인 공개 키다. 환경변수로 두는 것은
       // 보안이 아니라, 개발하며 찍히는 이벤트가 실제 데이터에 섞이지 않게 하려는 것.
       posthogKey: process.env.POSTHOG_KEY ?? "",

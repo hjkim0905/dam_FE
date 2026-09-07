@@ -1,0 +1,79 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      TARGET: ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: yarn
+
+      - run: yarn install --frozen-lockfile
+
+      # 키는 빌드 시점에 번들에 박힌다. 런타임 환경변수로는 못 넣는다.
+      - name: 빌드
+        working-directory: apps/web
+        env:
+          NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
+          NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN }}
+          NEXT_PUBLIC_SENTRY_ENV: production
+          NEXT_PUBLIC_SENTRY_RELEASE: ${{ github.sha }}
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+        run: yarn build
+
+      # standalone 은 서버 코드만 담는다. static 과 public 을 따로 넣지 않으면
+      # 화면이 스타일 없이 뜨는데, 빌드는 초록이라 알아채기 어렵다.
+      #
+      # 묶는 것은 standalone 통째다. 워크스페이스라 node_modules 가 apps/web 이
+      # 아니라 그 위에 놓이고, apps/web 만 담으면 모듈을 못 찾고 죽는다.
+      - name: 묶기
+        working-directory: apps/web
+        run: |
+          cp -r .next/static .next/standalone/apps/web/.next/static
+          cp -r public .next/standalone/apps/web/public
+          tar -czf /tmp/dam-web.tar.gz -C .next/standalone .
+          ls -lh /tmp/dam-web.tar.gz
+
+      - name: SSH 준비
+        env:
+          DEPLOY_KEY_B64: ${{ secrets.DEPLOY_KEY_B64 }}
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s' "$DEPLOY_KEY_B64" | base64 -d > ~/.ssh/deploy
+          chmod 600 ~/.ssh/deploy
+          ssh-keygen -y -f ~/.ssh/deploy > /dev/null
+          ssh-keyscan -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 올리기
+        run: |
+          scp -i ~/.ssh/deploy /tmp/dam-web.tar.gz "$TARGET:/tmp/dam-web.tar.gz"
+          scp -i ~/.ssh/deploy deploy/release-web.sh "$TARGET:/tmp/release-web.sh"
+
+      - name: 바꿔 끼우고 확인
+        run: ssh -i ~/.ssh/deploy "$TARGET" "bash /tmp/release-web.sh"
+
+      - name: 실패를 알린다
+        if: failure()
+        env:
+          HOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$HOOK" ] || exit 0
+          jq -n --arg c "담 웹 배포가 실패해서 이전 버전으로 되돌렸습니다.
+          $RUN_URL" '{content: $c}' \
+            | curl -sS -X POST "$HOOK" -H 'Content-Type: application/json' -d @-

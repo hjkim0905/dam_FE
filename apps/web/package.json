@@ -14,8 +14,10 @@
     "@emotion/cache": "^11.14.0",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.0",
+    "@sentry/nextjs": "^10.73.0",
     "ky": "^2.1.0",
     "next": "15.3.9",
+    "posthog-js": "^1.427.2",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },

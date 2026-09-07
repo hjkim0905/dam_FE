@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import Entrance from "../components/Entrance";
 import { ApiError, fetchProfile, isSessionGone, signInWithApple } from "../lib/api";
+import { EVENT, identify, track } from "../lib/analytics";
 import { clearToken, loadToken, saveToken } from "../lib/session";
 import { ALERT, FONT, MUTED } from "../theme";
 
@@ -28,6 +29,7 @@ export default function SignIn() {
 
     try {
       const profile = await fetchProfile(token);
+      identify(String(profile.id));
       router.replace(profile.onboarded ? "/home" : "/onboarding");
     } catch (error) {
       // 토큰이 죽은 것만 버린다. 서버에 닿지 못한 것까지 같이 버리면, 지하철에서
@@ -44,6 +46,7 @@ export default function SignIn() {
 
   const start = async () => {
     setFailed(null);
+    track(EVENT.signInStarted);
     try {
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME],
@@ -65,11 +68,19 @@ export default function SignIn() {
       });
 
       await saveToken(session.accessToken);
+      identify(String(session.user.id));
+      track(EVENT.signedIn, { first_time: !session.user.onboarded });
       router.replace(session.user.onboarded ? "/home" : "/onboarding");
     } catch (error) {
       setWorking(false);
       // 시트를 스스로 내린 것은 실패가 아니다. 잘못한 것처럼 말하지 않는다.
-      if ((error as { code?: string }).code === "ERR_REQUEST_CANCELED") return;
+      if ((error as { code?: string }).code === "ERR_REQUEST_CANCELED") {
+        track(EVENT.signInCancelled);
+        return;
+      }
+      track(EVENT.signInFailed, {
+        reason: error instanceof ApiError ? error.code : "unknown",
+      });
       setFailed(error instanceof ApiError ? error.message : "잠시 뒤에 다시 시도해 주세요");
     }
   };

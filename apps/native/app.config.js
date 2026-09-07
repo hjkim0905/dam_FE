@@ -1,6 +1,9 @@
 import { BACKGROUND } from "./theme";
 
-const WEB_URL = process.env.WEB_URL ?? "http://localhost:3000";
+/* 기본값이 배포 주소여야 한다. 로컬만 가리키게 두면 .env 가 없는 곳에서 빌드한
+   앱이 조용히 localhost 를 보러 가고, 그 사실이 흰 화면으로만 드러난다.
+   .env 는 로컬에서 이 값을 덮는 용도로 쓴다. */
+const WEB_URL = process.env.WEB_URL ?? "https://161.33.199.246.nip.io";
 
 /**
  * 개발에서는 웹이 3000, 서버가 8080 으로 따로 뜬다. 배포에서는 Caddy 가 둘을
@@ -55,6 +58,8 @@ export default {
         },
       ],
       "expo-image",
+      "expo-localization",
+      "./plugins/withKoreanProject",
       ["expo-font", { fonts: ["./assets/Galmuri14.ttf"] }],
       [
         "expo-build-properties",
@@ -65,9 +70,11 @@ export default {
     ],
     extra: {
       webUrl: WEB_URL,
-      // App Store Connect 에서 앱 레코드를 만들면 숫자 ID 가 나온다. 출시 전에도
-      // 정해지므로 그때 채우면 된다. 비어 있으면 스토어 대신 아무 일도 하지 않는다.
-      appStoreId: process.env.APP_STORE_ID ?? "",
+      // 강제 업데이트 화면이 스토어를 여는 데 쓴다. 공개된 값이라 숨길 이유가 없다.
+      appStoreId: process.env.APP_STORE_ID ?? "6809452180",
+      // 브라우저 번들에 실려 나가는 것이 정상인 공개 키다. 환경변수로 두는 것은
+      // 보안이 아니라, 개발하며 찍히는 이벤트가 실제 데이터에 섞이지 않게 하려는 것.
+      posthogKey: process.env.POSTHOG_KEY ?? "",
       apiUrl: process.env.API_URL ?? apiUrlFrom(WEB_URL),
     },
   },

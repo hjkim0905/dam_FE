@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
 import Entrance from "../components/Entrance";
 import { ApiError, completeOnboarding } from "../lib/api";
+import { EVENT, track } from "../lib/analytics";
 import { loadToken } from "../lib/session";
 import { DOCUMENTS } from "../utils/documents";
 import { cleanName } from "../utils/name";
@@ -20,6 +21,7 @@ export default function Onboarding() {
   const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
+    track(EVENT.onboardingOpened);
     void SplashScreen.hideAsync();
   }, []);
 
@@ -40,6 +42,7 @@ export default function Onboarding() {
         termsAgreed: terms,
         privacyAgreed: privacy,
       });
+      track(EVENT.onboardingDone);
       router.replace("/home");
     } catch (error) {
       setWorking(false);

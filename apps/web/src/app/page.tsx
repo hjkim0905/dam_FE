@@ -26,6 +26,8 @@ import {
 } from "@/lib/entries";
 import type { Entry } from "@/lib/entries";
 import { fetchEntries } from "@/lib/api/entries";
+import { EVENT } from "@/lib/analytics";
+import { track } from "@/lib/track";
 import { withdraw } from "@/lib/api/me";
 import { useSession } from "./session";
 import LoadFailed from "./load-failed";
@@ -41,9 +43,9 @@ type MenuAction =
 
 /* 앱 밖 문서라 웹뷰가 아니라 사파리로 나간다. 주소가 바뀌면 여기만 고친다. */
 const DOCUMENTS: Record<"privacy" | "terms" | "contact", string> = {
-  privacy: "https://www.notion.so/dam-privacy",
-  terms: "https://www.notion.so/dam-terms",
-  contact: "https://www.notion.so/dam-contact",
+  privacy: "https://respected-island-cf3.notion.site/3d4b1e15f1e9810e86b1e3fd9a024941",
+  terms: "https://respected-island-cf3.notion.site/3d4b1e15f1e981558d4cfb88108acd37",
+  contact: "https://respected-island-cf3.notion.site/3d4b1e15f1e98143a9c0f09330a6a49e",
 };
 
 const DROP_WIDTH_REM = 4;
@@ -136,8 +138,10 @@ export default function Home() {
       subscribeToNative((message) => {
         if (message.type !== "MENU") return;
         const { action } = (message.payload ?? {}) as { action?: MenuAction };
-        if (action && action in DOCUMENTS)
+        if (action && action in DOCUMENTS) {
+          track(EVENT.documentOpened, { which: action });
           openOutside(DOCUMENTS[action as keyof typeof DOCUMENTS]);
+        }
         else if (action) setOpened(action);
       }),
     [],
@@ -288,6 +292,7 @@ export default function Home() {
         detail="담은 기록은 그대로 남아요. 다시 로그인하면 이어서 담을 수 있어요."
         confirm="로그아웃"
         onConfirm={() => {
+          track(EVENT.signedOut);
           setOpened(null);
           signOut();
         }}
@@ -301,6 +306,7 @@ export default function Home() {
         confirm="모두 지우기"
         destructive
         onConfirm={() => {
+          track(EVENT.accountDeleted);
           void withdraw().finally(() => {
             setOpened(null);
             void refresh();

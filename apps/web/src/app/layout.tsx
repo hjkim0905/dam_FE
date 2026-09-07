@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
+import AnalyticsProvider, { PageViews } from './analytics';
 import EmotionProvider from './emotion-provider';
 import SessionProvider from './session';
 import TabReset from './tab-reset';
@@ -40,11 +41,14 @@ export default function RootLayout({
     <html lang="ko" className={galmuri.variable}>
       <body>
         <TabReset />
-        <EmotionProvider>
-          <div id="screen">
-            <SessionProvider>{children}</SessionProvider>
-          </div>
-        </EmotionProvider>
+        <AnalyticsProvider>
+          <PageViews />
+          <EmotionProvider>
+            <div id="screen">
+              <SessionProvider>{children}</SessionProvider>
+            </div>
+          </EmotionProvider>
+        </AnalyticsProvider>
       </body>
     </html>
   );

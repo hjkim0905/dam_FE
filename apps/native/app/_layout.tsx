@@ -1,6 +1,8 @@
 import { Stack } from "expo-router";
+import { PostHogProvider } from "posthog-react-native";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
+import { EVENT, posthog, track } from "../lib/analytics";
 import { BACKGROUND } from "../theme";
 
 /**
@@ -15,20 +17,28 @@ const GIVE_UP_MS = 6000;
 
 export default function RootLayout() {
   useEffect(() => {
+    track(EVENT.launched);
     const timer = setTimeout(() => void SplashScreen.hideAsync(), GIVE_UP_MS);
     return () => clearTimeout(timer);
   }, []);
 
+  /* 키가 없으면 client 가 null 이라 provider 가 아무 일도 하지 않는다.
+     화면 자동 수집과 터치 수집은 웹뷰 바깥, 즉 로그인과 온보딩에만 걸린다. */
   return (
-    <Stack
-      screenOptions={{
-        headerShown: false,
-        contentStyle: { backgroundColor: BACKGROUND },
-      }}
+    <PostHogProvider
+      client={posthog ?? undefined}
+      autocapture={{ captureScreens: true, captureTouches: true }}
     >
-      <Stack.Screen name="index" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: BACKGROUND },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="onboarding" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </PostHogProvider>
   );
 }

@@ -1,3 +1,4 @@
+import { withSentryConfig } from '@sentry/nextjs';
 import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
@@ -15,4 +16,16 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+/* 소스맵을 올려야 스택이 읽힌다. 안 올리면 압축된 한 줄만 남아 아무것도 못 본다.
+   토큰이 없는 곳(로컬, PR)에서는 업로드를 건너뛰고 빌드는 그대로 된다. */
+export default withSentryConfig(nextConfig, {
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  silent: !process.env.CI,
+  /* 올린 뒤 지운다. 남겨 두면 서버에서 누구나 원본 코드를 받아 갈 수 있다. */
+  sourcemaps: { deleteSourcemapsAfterUpload: true },
+  /* 광고 차단기가 /monitoring 을 막지 않아서, 웹뷰에서도 보고가 끊기지 않는다. */
+  tunnelRoute: '/monitoring',
+  disableLogger: true,
+});

@@ -43,9 +43,9 @@ type MenuAction =
 
 /* 앱 밖 문서라 웹뷰가 아니라 사파리로 나간다. 주소가 바뀌면 여기만 고친다. */
 const DOCUMENTS: Record<"privacy" | "terms" | "contact", string> = {
-  privacy: "https://www.notion.so/dam-privacy",
-  terms: "https://www.notion.so/dam-terms",
-  contact: "https://www.notion.so/dam-contact",
+  privacy: "https://respected-island-cf3.notion.site/3d4b1e15f1e9810e86b1e3fd9a024941",
+  terms: "https://respected-island-cf3.notion.site/3d4b1e15f1e981558d4cfb88108acd37",
+  contact: "https://respected-island-cf3.notion.site/3d4b1e15f1e98143a9c0f09330a6a49e",
 };
 
 const DROP_WIDTH_REM = 4;

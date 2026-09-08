@@ -29,7 +29,7 @@ export default {
     platforms: ["ios"],
     icon: "./assets/icon.png",
     ios: {
-      buildNumber: "1",
+      buildNumber: "2",
       supportsTablet: false,
       // Sign in with Apple 권한(entitlement)을 켠다. 이게 없으면 시트가 뜨지 않는다.
       usesAppleSignIn: true,

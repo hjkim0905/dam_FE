@@ -72,10 +72,13 @@ export default {
       webUrl: WEB_URL,
       // 강제 업데이트 화면이 스토어를 여는 데 쓴다. 공개된 값이라 숨길 이유가 없다.
       appStoreId: process.env.APP_STORE_ID ?? "6809452180",
+      // 담 전용 프로젝트의 키다. 처음 쓰던 키는 다른 서비스가 쓰던 것이라
+      // 한 프로젝트에 두 서비스의 이벤트가 섞였다.
+      //
       // 앱 번들에 실려 나가는 것이 정상인 공개 키다. 개발 중에 찍힌 이벤트가
       // 실제 데이터에 섞이지 않게 하는 일은 lib/analytics.ts 가 __DEV__ 로 맡는다.
       // 환경변수로만 두면 Xcode 가 셸 환경을 물려받지 않아 조용히 빈 값이 된다.
-      posthogKey: process.env.POSTHOG_KEY ?? "phc_Bwj2uRJdSDzmKxYR29y9XUwVgaVRMSCLDTWQgiNuFQBg",
+      posthogKey: process.env.POSTHOG_KEY ?? "phc_tfGuKJ5Eo4peZnxwvdLJfwPXjJTeBG6C5DXwprTJga5g",
       apiUrl: process.env.API_URL ?? apiUrlFrom(WEB_URL),
     },
   },

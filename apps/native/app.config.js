@@ -20,7 +20,7 @@ export default {
   expo: {
     name: "담.",
     slug: "dam",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     userInterfaceStyle: "light",
     backgroundColor: BACKGROUND,

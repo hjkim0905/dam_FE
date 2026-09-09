@@ -65,6 +65,11 @@ export function openStore(): void {
 }
 
 /** 약관과 방침은 앱 밖 문서다. 웹뷰 안에서 열면 돌아올 길이 없다. */
+/** 별점 창은 iOS 가 띄운다. 언제 띄울지는 웹이 알고, 띄우는 것은 네이티브만 한다. */
+export function askForReview(): void {
+  sendToNative({ type: 'ASK_REVIEW' });
+}
+
 export function openOutside(url: string): void {
   sendToNative({ type: 'OPEN_URL', payload: { url } });
 }

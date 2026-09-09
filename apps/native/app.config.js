@@ -20,7 +20,7 @@ export default {
   expo: {
     name: "담.",
     slug: "dam",
-    version: "1.0.0",
+    version: "1.0.1",
     orientation: "portrait",
     userInterfaceStyle: "light",
     backgroundColor: BACKGROUND,
@@ -29,7 +29,7 @@ export default {
     platforms: ["ios"],
     icon: "./assets/icon.png",
     ios: {
-      buildNumber: "2",
+      buildNumber: "1",
       supportsTablet: false,
       // Sign in with Apple 권한(entitlement)을 켠다. 이게 없으면 시트가 뜨지 않는다.
       usesAppleSignIn: true,

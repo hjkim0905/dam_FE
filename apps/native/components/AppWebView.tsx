@@ -7,6 +7,7 @@ import Constants from "expo-constants";
 import { router, useFocusEffect } from "expo-router";
 import * as Haptics from "expo-haptics";
 import * as Linking from "expo-linking";
+import * as StoreReview from "expo-store-review";
 import WebViewBase from "react-native-webview";
 import type WebViewInstance from "react-native-webview";
 import type { WebViewProps } from "react-native-webview/lib/WebView";
@@ -57,6 +58,12 @@ export default function AppWebView({ path }: { path: string }) {
     if (command.type === "PING") {
       webViewRef.current?.postMessage(JSON.stringify({ type: "PONG" }));
       return;
+    }
+    // 얼마나 자주 띄울지는 iOS 가 정한다(연 3회). 우리는 물을 만한 순간만 고른다.
+    if (command.type === "ASK_REVIEW") {
+      void StoreReview.isAvailableAsync()
+        .then((can) => (can ? StoreReview.requestReview() : undefined))
+        .catch(() => {});
     }
     if (command.type === "HAPTIC") PLAY_HAPTIC[command.style]();
     if (command.type === "OPEN_URL") Linking.openURL(command.url);

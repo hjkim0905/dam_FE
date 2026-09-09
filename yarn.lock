@@ -4251,6 +4251,11 @@ expo-splash-screen@~57.0.7:
     "@expo/image-utils" "^0.11.4"
     xml2js "0.6.0"
 
+expo-store-review@~57.0.2:
+  version "57.0.2"
+  resolved "https://registry.yarnpkg.com/expo-store-review/-/expo-store-review-57.0.2.tgz#8035182aea0a8e7da1ce0fa80b9182c381a4864a"
+  integrity sha512-C/cMUe0blmdLOeuA/rlfKTIb6znlmSfdm1Rx+khCfRL2qbMEfY0jZkGeVv/H3xObo9AyoaKJF8Vc0J8+Vz8CWg==
+
 expo-symbols@^57.0.2:
   version "57.0.2"
   resolved "https://registry.yarnpkg.com/expo-symbols/-/expo-symbols-57.0.2.tgz#b5b52f3902cc6f11ec2670c33b7d8a560c5426c3"

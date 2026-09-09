@@ -73,3 +73,9 @@ test("OPEN_STORE 는 앱스토어를 여는 신호로 읽힌다", () => {
     type: "OPEN_STORE",
   });
 });
+
+test("별점 요청을 알아듣는다", () => {
+  assert.deepEqual(decodeCommand(JSON.stringify({ type: "ASK_REVIEW" })), {
+    type: "ASK_REVIEW",
+  });
+});

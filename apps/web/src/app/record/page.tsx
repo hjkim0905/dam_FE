@@ -5,13 +5,15 @@ import { css } from '@emotion/react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
-import { requestHaptic } from '@/lib/bridge';
+import { askForReview, requestHaptic } from '@/lib/bridge';
 import { averageColor, pixelAt, rgbToHex } from '@/lib/color';
 import { EVENT, memoShape } from '@/lib/analytics';
 import { keepEntry } from '@/lib/api/entries';
 import { isApiError } from '@/lib/api/errors';
 import { requestUploadUrl } from '@/lib/api/photos';
+import { shouldAskForReview } from '@/lib/review';
 import { track } from '@/lib/track';
+import { useSession } from '../session';
 import { toDateKey } from '@/lib/entries';
 import { uploadPhoto } from '@/lib/upload';
 import { coverRect, fitSize, zoomRect } from '@/lib/image';
@@ -78,6 +80,7 @@ function drawLoupe(
 
 export default function Record() {
   const router = useRouter();
+  const { profile } = useSession();
   const photoRef = useRef<HTMLDivElement>(null);
   const pixelsRef = useRef<ImageData | null>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
@@ -196,6 +199,8 @@ export default function Record() {
     void savingRef.current
       ?.then(() => {
         track(EVENT.entryKept, { by_hand: pickedByHandRef.current, ...memoShape(memo) });
+        // 이 화면은 오늘을 아직 안 담았을 때만 열리므로 방금 하나가 늘었다.
+        if (shouldAskForReview(profile.keptCount + 1)) askForReview();
         router.replace('/#today');
       })
       .catch((failure: unknown) => {

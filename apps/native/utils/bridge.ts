@@ -13,7 +13,8 @@ export type BridgeCommand =
   | { type: "HAPTIC"; style: HapticStyle }
   | { type: "OPEN_URL"; url: string }
   | { type: "SIGNED_OUT" }
-  | { type: "OPEN_STORE" };
+  | { type: "OPEN_STORE" }
+  | { type: "ASK_REVIEW" };
 
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
@@ -50,6 +51,10 @@ export function decodeCommand(raw: string): BridgeCommand | null {
     // 웹이 첫 화면을 그릴 수 있게 됐다. 스플래시를 내려도 되는 시점이다.
     case "READY":
       return { type: "READY" };
+
+    // 언제 물을지는 웹이 정하고, 창을 띄우는 것은 iOS 만 할 수 있다.
+    case "ASK_REVIEW":
+      return { type: "ASK_REVIEW" };
 
     case "HAPTIC": {
       const style = memberOf(HAPTIC_STYLES, fieldOf(message.payload, "style"));

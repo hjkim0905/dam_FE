@@ -2,7 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { strings } from '@/lib/i18n';
+import { currentLocale, strings } from '@/lib/i18n';
 import { useRef, useState } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
@@ -21,6 +21,7 @@ function Kept({
   named: boolean;
 }) {
   const s = strings();
+  const locale = currentLocale();
 
   return (
     <article css={pageStyle}>
@@ -30,7 +31,7 @@ function Kept({
       <img
         className="ph-no-capture"
         src={entry.imageUrl}
-        alt={s.photoAlt(monthDayLabel(dateKey), mine)}
+        alt={s.photoAlt(monthDayLabel(dateKey, locale), mine)}
         css={shotStyle}
       />
       <p className="ph-no-capture" css={saidStyle}>
@@ -75,7 +76,7 @@ export default function DayDetail({ dateKey, sides }: { dateKey: string; sides: 
 
   return (
     <>
-      <h2 css={titleStyle}>{monthDayLabel(dateKey)}</h2>
+      <h2 css={titleStyle}>{monthDayLabel(dateKey, currentLocale())}</h2>
 
       <div ref={pagerRef} onScroll={onScroll} css={pagerStyle}>
         {kept.map(({ entry, mine }) => (

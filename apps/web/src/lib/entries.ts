@@ -47,7 +47,7 @@ const MONTHS_EN_FULL = ['January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December'];
 
 /** 화면 낭독용. '2026-08-18' 을 그대로 읽으면 알아들을 수 없다. */
-export function monthDayLabel(dateKey: string, locale: Locale = 'ko'): string {
+export function monthDayLabel(dateKey: string, locale: Locale): string {
   const [, month, day] = dateKey.split('-');
   if (locale === 'en') return `${MONTHS_EN[Number(month) - 1]} ${Number(day)}`;
   if (locale === 'ja') return `${Number(month)}月${Number(day)}日`;
@@ -64,13 +64,13 @@ export function entriesInMonth(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function monthLabel(dateKey: string, locale: Locale = 'ko'): string {
+export function monthLabel(dateKey: string, locale: Locale): string {
   const month = Number(monthKeyOf(dateKey).slice(5));
   if (locale === 'en') return MONTHS_EN[month - 1];
   return locale === 'ja' ? `${month}月` : `${month}월`;
 }
 
-export function monthTitle(dateKey: string, locale: Locale = 'ko'): string {
+export function monthTitle(dateKey: string, locale: Locale): string {
   const [year, month] = monthKeyOf(dateKey).split('-');
   if (locale === 'en') return `${MONTHS_EN_FULL[Number(month) - 1]} ${year}`;
   if (locale === 'ja') return `${year}年${Number(month)}月`;

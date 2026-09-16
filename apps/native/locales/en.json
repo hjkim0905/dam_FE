@@ -1,0 +1,5 @@
+{
+  "CFBundleDisplayName": "dam.",
+  "NSCameraUsageDescription": "Takes a photo of today to keep its color.",
+  "NSPhotoLibraryUsageDescription": "Uses a photo from your album to keep the day's color."
+}

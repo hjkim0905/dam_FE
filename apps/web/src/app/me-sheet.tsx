@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { currentLocale, strings } from '@/lib/i18n';
 import { useEffect, useState } from 'react';
 import { EVENT } from '@/lib/analytics';
 import { renameMe } from '@/lib/api/me';
@@ -33,6 +34,8 @@ export default function MeSheet({
 
   // 상대에게 보일 이름이라 빈 채로 두면 방에서 누가 누군지 알 수 없다.
   // 고친 것이 없으면 보내지 않는다. 시트를 열었다 닫기만 해도 요청이 나간다.
+  const s = strings();
+
   const keep = () => {
     const next = cleanName(name);
     if (next === profile.name) return;
@@ -41,16 +44,16 @@ export default function MeSheet({
   };
 
   return (
-    <Sheet open={open} label="내 정보" fill={false} onClose={onClose}>
-      <h2 css={titleStyle}>내 정보</h2>
+    <Sheet open={open} label={s.me} fill={false} onClose={onClose}>
+      <h2 css={titleStyle}>{s.me}</h2>
 
       <label css={fieldStyle}>
-        <span css={labelStyle}>이름</span>
+        <span css={labelStyle}>{s.name}</span>
         <input
           value={name}
           onChange={(e) => setName(e.target.value)}
           onBlur={keep}
-          placeholder="상대에게 보일 이름"
+          placeholder={s.nameHint}
           maxLength={12}
           css={inputStyle}
         />
@@ -58,13 +61,15 @@ export default function MeSheet({
 
       <dl css={statsStyle}>
         <div>
-          <dt>담은 색</dt>
-          <dd>{profile.keptCount}가지</dd>
+          <dt>{s.keptColors}</dt>
+          <dd>{s.countOfColors(profile.keptCount)}</dd>
         </div>
         <div>
-          <dt>처음 담은 날</dt>
+          <dt>{s.firstKept}</dt>
           <dd>
-            {profile.firstKeptDate ? monthDayLabel(profile.firstKeptDate) : '아직 없어요'}
+            {profile.firstKeptDate
+              ? monthDayLabel(profile.firstKeptDate, currentLocale())
+              : s.none}
           </dd>
         </div>
       </dl>

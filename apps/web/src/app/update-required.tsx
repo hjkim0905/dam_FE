@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 
 /**
  * 서버가 이 버전을 더는 받지 않는다. 앱스토어는 웹뷰가 열 수 없으므로 누르면
@@ -9,16 +10,18 @@ import { css } from '@emotion/react';
  * 없기 때문이다.
  */
 export default function UpdateRequired({ onUpdate }: { onUpdate: () => void }) {
+  const s = strings();
+
   return (
     <main css={screenStyle}>
-      <h1 css={headingStyle}>새 버전이 나왔어요</h1>
+      <h1 css={headingStyle}>{s.updateReady}</h1>
       <p css={bodyStyle}>
-        담아둔 색은 그대로 있어요.
+        {s.colorsAreSafe}
         <br />
-        앱을 업데이트하면 이어서 담을 수 있어요.
+        {s.updateToKeep}
       </p>
       <button type="button" onClick={onUpdate} css={updateStyle}>
-        업데이트하기
+        {s.update}
       </button>
     </main>
   );

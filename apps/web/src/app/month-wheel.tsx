@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import { Column, bandStyle } from './wheel';
 
 const MONTHS = Array.from({ length: 12 }, (_, i) => i + 1);
@@ -19,11 +20,13 @@ export default function MonthWheel({
   const pick = (nextYear: number, nextMonth: number) =>
     onChange(`${nextYear}-${`${nextMonth}`.padStart(2, '0')}`);
 
+  const s = strings();
+
   return (
     <div css={wheelStyle}>
       <div css={bandStyle} aria-hidden />
-      <Column values={years} suffix="년" chosen={year} onChoose={(y) => pick(y, month)} />
-      <Column values={MONTHS} suffix="월" chosen={month} onChoose={(m) => pick(year, m)} />
+      <Column values={years} suffix={s.yearSuffix} chosen={year} onChoose={(y) => pick(y, month)} />
+      <Column values={MONTHS} suffix={s.monthSuffix} chosen={month} onChoose={(m) => pick(year, m)} />
     </div>
   );
 }

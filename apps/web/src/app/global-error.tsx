@@ -2,6 +2,7 @@
 
 import * as Sentry from '@sentry/nextjs';
 import { useEffect } from 'react';
+import { strings } from '@/lib/i18n';
 
 /**
  * 루트 레이아웃까지 깨졌을 때만 온다. 그 시점에는 emotion provider 도 globals.css 도
@@ -9,6 +10,8 @@ import { useEffect } from 'react';
  * 인라인이고, 색도 변수가 아니라 값이다.
  */
 export default function GlobalError({ error }: { error: Error & { digest?: string } }) {
+  const s = strings();
+
   useEffect(() => {
     Sentry.captureException(error);
   }, [error]);
@@ -17,11 +20,11 @@ export default function GlobalError({ error }: { error: Error & { digest?: strin
     <html lang="ko">
       <body style={bodyStyle}>
         <main style={mainStyle}>
-          <h1 style={headingStyle}>잠시 문제가 생겼어요</h1>
+          <h1 style={headingStyle}>{s.somethingBroke}</h1>
           <p style={bodyTextStyle}>
-            담아둔 색은 그대로 있어요.
+            {s.colorsAreSafe}
             <br />
-            앱을 다시 열어 주세요.
+            {s.reopenApp}
           </p>
         </main>
       </body>

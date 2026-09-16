@@ -4,6 +4,7 @@
 import { css } from '@emotion/react';
 import { useEffect, useState } from 'react';
 import { EVENT } from '@/lib/analytics';
+import { strings } from '@/lib/i18n';
 import { track } from '@/lib/track';
 import { isApiError } from '@/lib/api/errors';
 import { issueInvite, joinRoom, leaveRoom } from '@/lib/api/rooms';
@@ -42,12 +43,14 @@ export default function RoomSheet({
     void refresh();
   }, [open, refresh]);
 
+  const s = strings();
+
   const run = (work: Promise<unknown>) => {
     setWorking(true);
     setFailed(null);
     return work
       .catch((error: unknown) => {
-        setFailed(isApiError(error) ? error.message : '잠시 뒤에 다시 시도해 주세요');
+        setFailed(isApiError(error) ? error.message : s.tryLater);
         throw error;
       })
       .finally(() => setWorking(false));
@@ -72,7 +75,7 @@ export default function RoomSheet({
         setCopied(true);
         requestHaptic('light');
       })
-      .catch(() => setFailed('복사하지 못했어요. 코드를 직접 옮겨 적어 주세요'));
+      .catch(() => setFailed(s.copyFailed));
   };
 
   const join = () => {
@@ -90,13 +93,13 @@ export default function RoomSheet({
   };
 
   return (
-    <Sheet open={open} label="방" fill={false} onClose={onClose}>
-      <h2 css={titleStyle}>방</h2>
+    <Sheet open={open} label={s.room} fill={false} onClose={onClose}>
+      <h2 css={titleStyle}>{s.room}</h2>
 
       <p css={stateStyle}>
         {together
-          ? `${room.partner!.name}님과 함께 담고 있어요.`
-          : '아직 혼자 담고 있어요.'}
+          ? s.withPartner(room.partner!.name)
+          : s.alone}
       </p>
 
       {together ? (
@@ -106,31 +109,31 @@ export default function RoomSheet({
           disabled={working}
           css={[actionStyle, quietStyle]}
         >
-          방 나가기
+          {s.leaveRoom}
         </button>
       ) : invite !== null ? (
         <>
-          <p css={codeLabelStyle}>이 코드를 상대에게 보내 주세요</p>
+          <p css={codeLabelStyle}>{s.sendCode}</p>
           <output css={codeStyle}>{invite}</output>
           <button type="button" onClick={copy} css={actionStyle}>
-            {copied ? '복사했어요' : '코드 복사하기'}
+            {copied ? s.copied : s.copyCode}
           </button>
-          <p css={noteStyle}>하루가 지나면 코드가 만료돼요.</p>
+          <p css={noteStyle}>{s.codeExpires}</p>
         </>
       ) : (
         <>
           <button type="button" onClick={make} disabled={working} css={actionStyle}>
-            초대코드 만들기
+            {s.makeInvite}
           </button>
 
-          <p css={orStyle}>또는</p>
+          <p css={orStyle}>{s.or}</p>
 
           <label css={fieldStyle}>
-            <span css={labelStyle}>받은 초대코드</span>
+            <span css={labelStyle}>{s.receivedCode}</span>
             <input
               value={code}
               onChange={(e) => setCode(normalizeInviteCode(e.target.value))}
-              placeholder="여섯 자리"
+              placeholder={s.sixDigits}
               inputMode="text"
               autoCapitalize="characters"
               maxLength={6}
@@ -144,7 +147,7 @@ export default function RoomSheet({
             disabled={!isInviteCode(code) || working}
             css={actionStyle}
           >
-            {isInviteCode(code) ? '이 코드로 들어가기' : '여섯 자리를 채워 주세요'}
+            {isInviteCode(code) ? s.joinWithCode : s.needSixDigits}
           </button>
         </>
       )}

@@ -7,6 +7,7 @@ import Entrance from "../components/Entrance";
 import { ApiError, fetchProfile, isSessionGone, signInWithApple } from "../lib/api";
 import { EVENT, identify, track } from "../lib/analytics";
 import { clearToken, loadToken, saveToken } from "../lib/session";
+import { strings } from "../lib/locale";
 import { ALERT, FONT, MUTED } from "../theme";
 
 /**
@@ -19,6 +20,7 @@ import { ALERT, FONT, MUTED } from "../theme";
 export default function SignIn() {
   const [failed, setFailed] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+  const s = strings();
 
   const settle = useCallback(async () => {
     const token = await loadToken();
@@ -35,7 +37,7 @@ export default function SignIn() {
       // 토큰이 죽은 것만 버린다. 서버에 닿지 못한 것까지 같이 버리면, 지하철에서
       // 앱을 연 사람이 저장된 토큰을 잃고 애플 로그인부터 다시 해야 한다.
       if (isSessionGone(error)) await clearToken();
-      else setFailed("연결이 닿지 않아요. 잠시 뒤에 다시 열어 주세요");
+      else setFailed(s.unreachableOnLaunch);
       await SplashScreen.hideAsync();
     }
   }, []);
@@ -52,7 +54,7 @@ export default function SignIn() {
         requestedScopes: [AppleAuthentication.AppleAuthenticationScope.FULL_NAME],
       });
       if (credential.identityToken === null) {
-        setFailed("로그인을 확인하지 못했어요");
+        setFailed(s.signInUnconfirmed);
         return;
       }
 
@@ -81,15 +83,15 @@ export default function SignIn() {
       track(EVENT.signInFailed, {
         reason: error instanceof ApiError ? error.code : "unknown",
       });
-      setFailed(error instanceof ApiError ? error.message : "잠시 뒤에 다시 시도해 주세요");
+      setFailed(error instanceof ApiError ? error.message : s.tryLater);
     }
   };
 
   return (
     <Entrance
-      title="담."
+      title={s.appName}
       titleSize={56}
-      lead={"하루 사진 한 장에서\n색 하나를 담아요"}
+      lead={s.lead}
       top={180}
       busy={working}
     >
@@ -101,7 +103,7 @@ export default function SignIn() {
         onPress={() => void start()}
       />
       <Text style={[styles.note, failed !== null && styles.failed]}>
-        {failed ?? "계속하면 약관과 개인정보 처리방침에\n동의하게 돼요"}
+        {failed ?? s.agreeNote}
       </Text>
     </Entrance>
   );

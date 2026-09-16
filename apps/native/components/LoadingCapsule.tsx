@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Image } from "expo-image";
+import { strings } from "../lib/locale";
 import { BACKGROUND, FONT, MUTED } from "../theme";
 
 const APPEAR_AFTER_MS = 200;
@@ -8,6 +9,7 @@ const APPEAR_AFTER_MS = 200;
 /** 웹이 도착하기 전 구간. 웹의 로딩과 같은 규칙으로 짧은 기다림에는 나타나지 않는다. */
 export default function LoadingCapsule() {
   const [visible, setVisible] = useState(false);
+  const s = strings();
 
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), APPEAR_AFTER_MS);
@@ -23,7 +25,7 @@ export default function LoadingCapsule() {
             style={styles.capsule}
             contentFit="contain"
           />
-          <Text style={styles.label}>불러오는 중이에요</Text>
+          <Text style={styles.label}>{s.loading}</Text>
         </>
       )}
     </View>

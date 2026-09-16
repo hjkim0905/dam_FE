@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import { useCallback, useEffect, useState } from 'react';
 import { bandOf, toDateKey, viewOf, yearRange, yearsSince } from '@/lib/entries';
 import type { Company, Entry } from '@/lib/entries';
@@ -20,6 +21,7 @@ export default function Flow() {
   const [chosenYear, setChosenYear] = useState<number | null>(null);
   const [pickingYear, setPickingYear] = useState(false);
   const { profile, refresh } = useSession();
+  const s = strings();
 
   const year = chosenYear ?? Number(toDateKey(new Date()).slice(0, 4));
   const together = profile.room !== null && profile.room.partner !== null;
@@ -45,10 +47,10 @@ export default function Flow() {
         <button
           type="button"
           onClick={() => setPickingYear(true)}
-          aria-label={`${year}년의 흐름, 다른 해 고르기`}
+          aria-label={s.flowAria(year)}
           css={titleStyle}
         >
-          {year}년의 흐름
+          {s.flowTitle(year)}
           <span css={chevronStyle} aria-hidden>
             ▼
           </span>
@@ -65,20 +67,20 @@ export default function Flow() {
             <div
               css={[dropStyle, shown.length === 0 && emptyDropStyle]}
               style={{ background: bandOf(shown.map((e) => e.color)) }}
-              aria-label={`${year}년에 담은 ${shown.length}가지 색`}
+              aria-label={s.colorsKeptAria(year, shown.length)}
               role="img"
             />
           </div>
 
           <p css={countStyle}>
-            {shown.length === 0 ? '아직 담은 색이 없어요' : `${shown.length}가지 색`}
+            {shown.length === 0 ? s.nothingKept : s.colorsKept(shown.length)}
           </p>
         </>
       )}
 
       <Sheet
         open={pickingYear}
-        label="해 고르기"
+        label={s.pickYear}
         fill={false}
         onClose={() => setPickingYear(false)}
       >

@@ -5,6 +5,7 @@ import posthog from 'posthog-js';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import { EVENT } from '@/lib/analytics';
+import { currentLocale } from '@/lib/i18n';
 import { isNativeApp } from '@/lib/bridge';
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -17,6 +18,12 @@ const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
  * 눌렸나" 이고, 우리가 알고 싶은 것은 "담았나" 라서 서로를 대신하지 못한다.
  */
 export default function AnalyticsProvider({ children }: { children: ReactNode }) {
+  /* 서버는 어느 언어로 그릴지 모른다. lang 을 ko 로 둔 채 영어를 띄우면
+     보이스오버가 영어 문장을 한국어로 읽는다. */
+  useEffect(() => {
+    document.documentElement.lang = currentLocale();
+  }, []);
+
   useEffect(() => {
     if (!KEY || posthog.__loaded) return;
 

@@ -27,6 +27,7 @@ import {
 import type { Entry } from "@/lib/entries";
 import { fetchEntries } from "@/lib/api/entries";
 import { EVENT } from "@/lib/analytics";
+import { currentLocale, strings } from "@/lib/i18n";
 import { track } from "@/lib/track";
 import { withdraw } from "@/lib/api/me";
 import { useSession } from "./session";
@@ -59,6 +60,8 @@ import useFocusReload from "./use-focus-reload";
 
 export default function Home() {
   const { profile, me, refresh, signOut } = useSession();
+  const s = strings();
+  const locale = currentLocale();
   const stripRef = useRef<HTMLDivElement>(null);
   // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
   // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
@@ -187,10 +190,10 @@ export default function Home() {
           <button
             type="button"
             onClick={() => setPickingMonth(true)}
-            aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
+            aria-label={s.changeMonth(monthTitle(monthKey, locale))}
             css={titleStyle}
           >
-            {monthLabel(monthKey)}의 색
+            {s.colorsOfMonth(monthLabel(monthKey, locale))}
             <span css={chevronStyle} aria-hidden>
               ▼
             </span>
@@ -205,7 +208,7 @@ export default function Home() {
         >
           {entries === null || failed
             ? "\u00a0"
-            : `${thisMonth.length}방울의 기록`}
+            : s.dropsKept(thisMonth.length)}
         </p>
       </header>
 
@@ -247,7 +250,7 @@ export default function Home() {
               <button
                 key={entry.date}
                 type="button"
-                aria-label={`${monthDayLabel(entry.date)}의 색`}
+                aria-label={s.colorOnDay(monthDayLabel(entry.date, locale))}
                 // 멀리 있는 방울은 먼저 데려온다. 이미 와 있으면 그날을 연다.
                 onClick={(e) => {
                   if (index === centered) setOpenDate(entry.date);
@@ -270,7 +273,7 @@ export default function Home() {
           {entries !== null && !capturedToday && (
             <Link
               href="/record"
-              aria-label="오늘의 색 담기"
+              aria-label={s.keepToday}
               css={[slotStyle, emptySlotStyle]}
               style={
                 {
@@ -288,9 +291,9 @@ export default function Home() {
 
       <ConfirmSheet
         open={opened === "signOut"}
-        title="로그아웃"
-        detail="담은 기록은 그대로 남아요. 다시 로그인하면 이어서 담을 수 있어요."
-        confirm="로그아웃"
+        title={s.signOut}
+        detail={s.signOutBody}
+        confirm={s.signOut}
         onConfirm={() => {
           track(EVENT.signedOut);
           setOpened(null);
@@ -301,9 +304,9 @@ export default function Home() {
 
       <ConfirmSheet
         open={opened === "deleteAccount"}
-        title="회원탈퇴"
-        detail="지금까지 담은 색과 사진, 메모가 모두 지워져요. 되돌릴 수 없어요."
-        confirm="모두 지우기"
+        title={s.deleteAccount}
+        detail={s.deleteAccountBody}
+        confirm={s.deleteAll}
         destructive
         onConfirm={() => {
           track(EVENT.accountDeleted);
@@ -317,7 +320,7 @@ export default function Home() {
 
       <Sheet
         open={pickingMonth}
-        label="년월 고르기"
+        label={s.pickMonth}
         fill={false}
         onClose={() => setPickingMonth(false)}
       >

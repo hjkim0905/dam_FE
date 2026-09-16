@@ -2,17 +2,20 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 
 /**
  * 그 달의 기록을 못 받았을 때. 빈 배열로 넘겨 "아직 담은 색이 없어요" 를 띄우면,
  * 사용자는 서버가 아니라 자기 기록이 사라졌다고 읽는다.
  */
 export default function LoadFailed({ onRetry }: { onRetry: () => void }) {
+  const s = strings();
+
   return (
     <div css={boxStyle}>
-      <p css={textStyle}>기록을 불러오지 못했어요</p>
+      <p css={textStyle}>{s.loadFailed}</p>
       <button type="button" onClick={onRetry} css={retryStyle}>
-        다시 시도
+        {s.retry}
       </button>
     </div>
   );

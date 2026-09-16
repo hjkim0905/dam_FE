@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import { useState } from 'react';
 
 /**
@@ -11,6 +12,7 @@ import { useState } from 'react';
  */
 export default function Unreachable({ onRetry }: { onRetry: () => Promise<void> }) {
   const [trying, setTrying] = useState(false);
+  const s = strings();
 
   const retry = () => {
     setTrying(true);
@@ -19,14 +21,14 @@ export default function Unreachable({ onRetry }: { onRetry: () => Promise<void> 
 
   return (
     <main css={screenStyle}>
-      <h1 css={headingStyle}>연결이 닿지 않아요</h1>
+      <h1 css={headingStyle}>{s.unreachable}</h1>
       <p css={bodyStyle}>
-        담아둔 색은 그대로 있어요.
+        {s.colorsAreSafe}
         <br />
-        연결을 확인하고 다시 시도해 주세요.
+        {s.checkConnection}
       </p>
       <button type="button" onClick={retry} disabled={trying} css={retryStyle}>
-        {trying ? '연결하는 중' : '다시 시도'}
+        {trying ? s.retrying : s.retry}
       </button>
     </main>
   );

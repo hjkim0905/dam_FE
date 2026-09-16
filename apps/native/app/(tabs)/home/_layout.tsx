@@ -1,4 +1,5 @@
 import { Stack } from "expo-router";
+import { currentLocale } from "../../../lib/locale";
 import { homeMenu } from "../../../utils/menu";
 import { sendToWeb } from "../../../utils/web-channel";
 
@@ -16,7 +17,7 @@ export default function HomeLayout() {
         headerTransparent: true,
         headerShadowVisible: false,
         title: "",
-        unstable_headerRightItems: () => homeMenu(sendToWeb),
+        unstable_headerRightItems: () => homeMenu(sendToWeb, currentLocale()),
       }}
     />
   );

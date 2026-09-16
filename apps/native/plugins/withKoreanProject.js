@@ -12,11 +12,9 @@ module.exports = function withKoreanProject(config) {
     const root = cfg.modResults.getFirstProject().firstProject;
 
     root.developmentRegion = "ko";
-    if (Array.isArray(root.knownRegions)) {
-      // Base 는 지역이 아니라 스토리보드의 기준 파일이라 남겨야 한다.
-      root.knownRegions = root.knownRegions.map((region) =>
-        region === "en" ? "ko" : region
-      );
+    if (Array.isArray(root.knownRegions) && !root.knownRegions.includes("ko")) {
+      // en 은 지우지 않는다. 빼면 영어 InfoPlist.strings 가 번들에 실리지 않는다.
+      root.knownRegions = [...root.knownRegions, "ko"];
     }
 
     return cfg;

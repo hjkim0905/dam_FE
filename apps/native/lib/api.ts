@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { strings } from "./locale";
 import { ApiError } from "./errors";
 
 export { ApiError, isSessionGone } from "./errors";
@@ -32,7 +33,7 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
       },
     });
   } catch {
-    throw new ApiError("OFFLINE", "연결을 확인해 주세요");
+    throw new ApiError("OFFLINE", strings().checkConnection);
   }
 
   if (response.status === 204) return undefined as T;
@@ -43,7 +44,7 @@ async function call<T>(path: string, init: RequestInit & { token?: string } = {}
   // 서버는 실패만 감싼다. 코드가 있어야 화면이 분기할 수 있다.
   const { code, message } =
     (body as { code?: string; message?: string } | null) ?? {};
-  throw new ApiError(code ?? "UNREADABLE", message ?? "잠시 뒤에 다시 시도해 주세요");
+  throw new ApiError(code ?? "UNREADABLE", message ?? strings().tryLater);
 }
 
 export function signInWithApple(input: {

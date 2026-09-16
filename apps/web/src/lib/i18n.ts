@@ -204,7 +204,6 @@ const EN: typeof KO = {
   deleteAll: 'Erase everything',
 };
 
-/* 日本語. 키가 빠지면 EN 과 같은 방식으로 컴파일러가 잡는다. */
 const JA: typeof KO = {
   title: '담. — 一日をひとつの色に',
   description: '写真一枚から、今日をひとつの色で残します。',

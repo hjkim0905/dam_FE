@@ -89,7 +89,6 @@ const EN: typeof KO = {
   checkConnection: "Check your connection",
 };
 
-/* 日本語. */
 const JA: typeof KO = {
   appName: "담.",
   lead: "一日の写真一枚から\n色をひとつ残します",

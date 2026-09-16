@@ -42,6 +42,10 @@ const KO = {
   contact: "문의와 연락처",
   signOut: "로그아웃",
   deleteAccount: "회원탈퇴",
+  loading: "불러오는 중이에요",
+  today: "오늘",
+  calendar: "달력",
+  flow: "흐름",
   unnamed: "이름 없음",
   checkConnection: "연결을 확인해 주세요",
 };
@@ -76,6 +80,10 @@ const EN: typeof KO = {
   contact: "Contact",
   signOut: "Sign out",
   deleteAccount: "Delete account",
+  loading: "Loading",
+  today: "Today",
+  calendar: "Calendar",
+  flow: "Flow",
   unnamed: "No name",
   checkConnection: "Check your connection",
 };

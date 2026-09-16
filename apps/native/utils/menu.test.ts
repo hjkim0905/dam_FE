@@ -32,7 +32,7 @@ function everyAction(items: readonly unknown[], found: Any[] = []): Any[] {
   return found;
 }
 
-const menu = homeMenu(() => {});
+const menu = homeMenu(() => {}, "ko");
 
 test("모든 메뉴와 하위 메뉴가 선택을 끈다", () => {
   const menus = everyMenu(menu);
@@ -51,7 +51,7 @@ test("모든 항목이 꺼짐 상태다", () => {
 
 test("고른 항목이 무엇인지 알려준다", () => {
   const picked: string[] = [];
-  const chosen = homeMenu((action) => picked.push(action));
+  const chosen = homeMenu((action) => picked.push(action), "ko");
 
   for (const action of everyAction(chosen)) (action.onPress as () => void)();
 
@@ -62,4 +62,12 @@ test("회원탈퇴만 되돌릴 수 없는 항목으로 표시된다", () => {
   const destructive = everyAction(menu).filter((a) => a.destructive === true);
 
   assert.deepEqual(destructive.map((a) => a.label), ["회원탈퇴"]);
+});
+
+test("homeMenu 는 고른 언어로 항목을 붙인다", () => {
+  const labelsOf = (locale: "ko" | "en") =>
+    JSON.stringify(homeMenu(() => {}, locale));
+
+  assert.ok(labelsOf("ko").includes("회원탈퇴"));
+  assert.ok(labelsOf("en").includes("Delete account"));
 });

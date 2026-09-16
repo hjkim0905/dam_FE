@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import { strings } from "../lib/locale";
 import { BACKGROUND, FAINT, FONT, MUTED, TINT } from "../theme";
 
 /**
@@ -7,21 +8,23 @@ import { BACKGROUND, FAINT, FONT, MUTED, TINT } from "../theme";
  * 그리는데, 그 순간 앱이 아니라 브라우저로 보인다.
  */
 export default function Unreachable({ onRetry }: { onRetry: () => void }) {
+  const s = strings();
+
   return (
     // 웹뷰가 오류 화면을 어디에 끼워 넣든 화면을 꽉 채워야 가운데가 가운데가 된다.
     // 안전영역만큼 비키지는 않는다. 글 뭉치가 작아 가장자리에 닿을 일이 없고,
     // 위아래로 다르게 비키면 그만큼 가운데가 아니게 된다.
     <View style={styles.screen}>
-      <Text style={styles.heading}>연결이 닿지 않아요</Text>
+      <Text style={styles.heading}>{s.unreachable}</Text>
       <Text style={styles.body}>
-        담아둔 색은 그대로 있어요.{"\n"}연결을 확인하고 다시 시도해 주세요.
+        {s.unreachableBody}
       </Text>
       <Pressable
         onPress={onRetry}
         accessibilityRole="button"
         style={({ pressed }) => [styles.retry, pressed && styles.retryPressed]}
       >
-        <Text style={styles.retryLabel}>다시 시도</Text>
+        <Text style={styles.retryLabel}>{s.retry}</Text>
       </Pressable>
     </View>
   );

@@ -7,6 +7,7 @@ import Entrance from "../components/Entrance";
 import { ApiError, completeOnboarding } from "../lib/api";
 import { EVENT, track } from "../lib/analytics";
 import { loadToken } from "../lib/session";
+import { strings } from "../lib/locale";
 import { DOCUMENTS } from "../utils/documents";
 import { cleanName } from "../utils/name";
 import { ALERT, BACKGROUND, FAINT, FONT, MUTED, TINT } from "../theme";
@@ -19,6 +20,7 @@ export default function Onboarding() {
   const [privacy, setPrivacy] = useState(false);
   const [working, setWorking] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
+  const s = strings();
 
   useEffect(() => {
     track(EVENT.onboardingOpened);
@@ -38,7 +40,7 @@ export default function Onboarding() {
     setFailed(null);
     try {
       await completeOnboarding(token, {
-        name: cleanName(name),
+        name: cleanName(name, s.unnamed),
         termsAgreed: terms,
         privacyAgreed: privacy,
       });
@@ -46,14 +48,14 @@ export default function Onboarding() {
       router.replace("/home");
     } catch (error) {
       setWorking(false);
-      setFailed(error instanceof ApiError ? error.message : "잠시 뒤에 다시 시도해 주세요");
+      setFailed(error instanceof ApiError ? error.message : s.tryLater);
     }
   };
 
   return (
     <Entrance
-      title="어떻게 부를까요"
-      lead="같이 담을 사람에게 보이는 이름이에요"
+      title={s.askName}
+      lead={s.nameLead}
       top={48}
       busy={working}
     >
@@ -62,7 +64,7 @@ export default function Onboarding() {
           value={name}
           onChangeText={setName}
           maxLength={MAX_NAME}
-          placeholder="이름"
+          placeholder={s.name}
           placeholderTextColor={FAINT}
           autoCorrect={false}
           style={styles.field}
@@ -72,13 +74,13 @@ export default function Onboarding() {
           <Agreement
             checked={terms}
             onChange={setTerms}
-            label="이용약관에 동의해요"
+            label={s.agreeTerms}
             onRead={() => void Linking.openURL(DOCUMENTS.terms)}
           />
           <Agreement
             checked={privacy}
             onChange={setPrivacy}
-            label="개인정보 처리방침에 동의해요"
+            label={s.agreePrivacy}
             onRead={() => void Linking.openURL(DOCUMENTS.privacy)}
           />
         </View>
@@ -94,7 +96,7 @@ export default function Onboarding() {
         ]}
       >
         <Text style={[styles.startLabel, !ready && styles.startLabelOff]}>
-          시작하기
+          {s.start}
         </Text>
       </Pressable>
 
@@ -114,6 +116,8 @@ function Agreement({
   label: string;
   onRead: () => void;
 }) {
+  const s = strings();
+
   return (
     <View style={styles.row}>
       <Pressable
@@ -127,7 +131,7 @@ function Agreement({
         <Text style={styles.label}>{label}</Text>
       </Pressable>
       <Pressable onPress={onRead} style={({ pressed }) => pressed && styles.pressed}>
-        <Text style={styles.read}>보기</Text>
+        <Text style={styles.read}>{s.read}</Text>
       </Pressable>
     </View>
   );

@@ -20,6 +20,7 @@ import type { Company, Entry, Sides } from '@/lib/entries';
 import { fetchEntries } from '@/lib/api/entries';
 import { EVENT } from '@/lib/analytics';
 import { track } from '@/lib/track';
+import { currentLocale, strings } from '@/lib/i18n';
 import { useSession } from '../session';
 import LoadFailed from '../load-failed';
 import DayDetail from '../day-detail';
@@ -27,7 +28,6 @@ import CompanyFilter from '../company-filter';
 import MonthWheel from '../month-wheel';
 import Sheet from '../sheet';
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 /* 칸은 화면 너비의 7분의 1이라 아이폰에서 55pt 안팎이다. next/image 는 이 값과 그 두
    배를 후보로 내주고 브라우저가 화면 배율에 맞는 쪽을 고른다. 3배 화면이면 256px 가
@@ -42,8 +42,9 @@ function Day({
   sides: Sides;
   onOpen: (dateKey: string) => void;
 }) {
+  const s = strings();
   const shots = [sides.mine, sides.theirs].filter((e): e is Entry => e !== null);
-  const label = monthDayLabel(dateKey);
+  const label = monthDayLabel(dateKey, currentLocale());
 
   // 담지 않은 날은 열 것이 없다. 빈 버튼을 두면 눌러도 아무 일이 없다.
   const Cell = shots.length > 0 ? 'button' : 'div';
@@ -52,7 +53,7 @@ function Day({
     <Cell
       css={[cellStyle, shots.length > 0 && openableStyle]}
       {...(shots.length > 0
-        ? { type: 'button' as const, 'aria-label': `${label} 기록 보기`, onClick: () => onOpen(dateKey) }
+        ? { type: 'button' as const, 'aria-label': s.openDay(label), onClick: () => onOpen(dateKey) }
         : {})}
     >
       <div css={slotStyle}>
@@ -63,7 +64,7 @@ function Day({
                 className="ph-no-capture"
                 key={entry.author}
                 src={entry.imageUrl}
-                alt={`${label} ${entry === sides.mine ? '내' : '상대'} 사진`}
+                alt={s.photoOn(label, entry === sides.mine)}
                 width={THUMB}
                 height={THUMB}
               />
@@ -101,6 +102,8 @@ export default function CalendarScreen() {
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
   const { profile, me, refresh } = useSession();
+  const s = strings();
+  const locale = currentLocale();
 
   const monthKey = chosenMonth ?? monthKeyOf(toDateKey(new Date()));
   // 방이 없으면 고를 것이 하나뿐이라 필터를 감춘다. 그때는 서버도 내것만 준다.
@@ -133,10 +136,10 @@ export default function CalendarScreen() {
           track(EVENT.monthChanged, { from: monthKey });
           setPickingMonth(true);
         }}
-        aria-label={`${monthTitle(monthKey)}, 다른 달 고르기`}
+        aria-label={s.changeMonth(monthTitle(monthKey, locale))}
         css={titleStyle}
       >
-        {monthTitle(monthKey)}
+        {monthTitle(monthKey, locale)}
         <span css={chevronStyle} aria-hidden>
           ▼
         </span>
@@ -155,7 +158,7 @@ export default function CalendarScreen() {
           )}
 
           <div css={weekdayStyle} aria-hidden>
-            {WEEKDAYS.map((day) => (
+            {s.weekdays.map((day) => (
               <span key={day}>{day}</span>
             ))}
           </div>
@@ -188,7 +191,7 @@ export default function CalendarScreen() {
 
       <Sheet
         open={pickingMonth}
-        label="년월 고르기"
+        label={s.pickMonth}
         fill={false}
         onClose={() => setPickingMonth(false)}
       >
@@ -201,7 +204,7 @@ export default function CalendarScreen() {
 
       <Sheet
         open={openDate !== null}
-        label={openDate ? `${monthDayLabel(openDate)} 기록` : ''}
+        label={openDate ? s.dayRecord(monthDayLabel(openDate, locale)) : ''}
         onClose={() => setOpenDate(null)}
       >
         {openDate && <DayDetail dateKey={openDate} sides={sidesOn(shown, openDate, me)} />}

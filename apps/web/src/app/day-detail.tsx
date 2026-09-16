@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import { useRef, useState } from 'react';
 import { requestHaptic } from '@/lib/bridge';
 import { snappedIndex } from '@/lib/carousel';
@@ -10,29 +11,31 @@ import type { Entry, Sides } from '@/lib/entries';
 
 function Kept({
   entry,
-  whose,
+  mine,
   dateKey,
   named,
 }: {
   entry: Entry;
-  whose: string;
+  mine: boolean;
   dateKey: string;
   named: boolean;
 }) {
+  const s = strings();
+
   return (
     <article css={pageStyle}>
       {/* 혼자 담은 날엔 누구 것인지 말할 필요가 없다. 가릴 것이 있을 때만 이름을 단다. */}
-      {named && <p css={whoseStyle}>{whose} 담은</p>}
+      {named && <p css={whoseStyle}>{s.keptBy(mine)}</p>}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         className="ph-no-capture"
         src={entry.imageUrl}
-        alt={`${monthDayLabel(dateKey)} ${whose} 담은 사진`}
+        alt={s.photoAlt(monthDayLabel(dateKey), mine)}
         css={shotStyle}
       />
       <p className="ph-no-capture" css={saidStyle}>
         <span css={colorStyle} style={{ background: entry.color }} />
-        <span>{entry.memo || `${whose} 담은 색`}</span>
+        <span>{entry.memo || s.colorOf(mine)}</span>
       </p>
     </article>
   );
@@ -42,9 +45,11 @@ export default function DayDetail({ dateKey, sides }: { dateKey: string; sides: 
   const pagerRef = useRef<HTMLDivElement>(null);
   const [shown, setShown] = useState(0);
 
-  const kept: { entry: Entry; whose: string }[] = [];
-  if (sides.mine) kept.push({ entry: sides.mine, whose: '내가' });
-  if (sides.theirs) kept.push({ entry: sides.theirs, whose: '상대가' });
+  const s = strings();
+
+  const kept: { entry: Entry; mine: boolean }[] = [];
+  if (sides.mine) kept.push({ entry: sides.mine, mine: true });
+  if (sides.theirs) kept.push({ entry: sides.theirs, mine: false });
 
   // 넘기는 것은 브라우저의 스크롤 스냅이 한다. 손짓을 직접 읽으면 시트의 세로
   // 스크롤과 판정을 다투게 되고, 한 번 어긋나면 둘 다 씹힌다.
@@ -73,11 +78,11 @@ export default function DayDetail({ dateKey, sides }: { dateKey: string; sides: 
       <h2 css={titleStyle}>{monthDayLabel(dateKey)}</h2>
 
       <div ref={pagerRef} onScroll={onScroll} css={pagerStyle}>
-        {kept.map(({ entry, whose }) => (
+        {kept.map(({ entry, mine }) => (
           <Kept
             key={entry.author}
             entry={entry}
-            whose={whose}
+            mine={mine}
             dateKey={dateKey}
             named={kept.length > 1}
           />
@@ -85,12 +90,12 @@ export default function DayDetail({ dateKey, sides }: { dateKey: string; sides: 
       </div>
 
       {kept.length > 1 && (
-        <nav css={dotsStyle} aria-label="누구의 기록을 볼지">
-          {kept.map(({ entry, whose }, index) => (
+        <nav css={dotsStyle} aria-label={s.whoseRecords}>
+          {kept.map(({ entry, mine }, index) => (
             <button
               key={entry.author}
               type="button"
-              aria-label={`${whose} 담은 것`}
+              aria-label={s.keptByAria(mine)}
               aria-current={index === shown}
               onClick={() => goTo(index)}
               css={dotStyle}

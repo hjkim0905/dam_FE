@@ -53,17 +53,24 @@ test('entriesInMonth 는 그 달의 기록만 고른다', () => {
 });
 
 test('monthDayLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
-  assert.equal(monthDayLabel('2026-08-01'), '8월 1일');
-  assert.equal(monthDayLabel('2026-12-25'), '12월 25일');
+  assert.equal(monthDayLabel('2026-08-01', 'ko'), '8월 1일');
+  assert.equal(monthDayLabel('2026-12-25', 'ko'), '12월 25일');
+});
+
+test('monthDayLabel 은 영어에서 달 이름을 쓴다', () => {
+  // 숫자만 쓰면 8/1 이 8월 1일인지 1월 8일인지 나라마다 다르게 읽힌다.
+  assert.equal(monthDayLabel('2026-08-01', 'en'), 'Aug 1');
+  assert.equal(monthDayLabel('2026-12-25', 'en'), 'Dec 25');
 });
 
 test('monthLabel 은 앞의 0 을 떼고 읽는 말로 준다', () => {
-  assert.equal(monthLabel('2026-08-01'), '8월');
-  assert.equal(monthLabel('2026-12-25'), '12월');
+  assert.equal(monthLabel('2026-08-01', 'ko'), '8월');
+  assert.equal(monthLabel('2026-12-25', 'en'), 'Dec');
 });
 
 test('monthTitle 은 년과 월을 함께 준다', () => {
-  assert.equal(monthTitle('2026-09-01'), '2026년 9월');
+  assert.equal(monthTitle('2026-09-01', 'ko'), '2026년 9월');
+  assert.equal(monthTitle('2026-09-01', 'en'), 'September 2026');
 });
 
 test('sidesOn 은 같은 날의 양쪽을 갈라 준다', () => {

@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import { Column, bandStyle } from './wheel';
 
 export default function YearWheel({
@@ -13,10 +14,12 @@ export default function YearWheel({
   year: number;
   onChange: (year: number) => void;
 }) {
+  const s = strings();
+
   return (
     <div css={wheelStyle}>
       <div css={bandStyle} aria-hidden />
-      <Column values={years} suffix="년" chosen={year} onChoose={onChange} />
+      <Column values={years} suffix={s.yearSuffix} chosen={year} onChoose={onChange} />
     </div>
   );
 }

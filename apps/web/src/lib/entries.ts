@@ -1,3 +1,4 @@
+import type { Locale } from './i18n';
 export type Entry = {
   id: number;
   date: string;
@@ -39,9 +40,16 @@ export function monthKeyOf(dateKey: string): string {
   return dateKey.slice(0, 7);
 }
 
+/* 영어는 8/1 이 8월 1일인지 1월 8일인지 나라마다 다르게 읽혀서 이름을 쓴다. */
+const MONTHS_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_EN_FULL = ['January', 'February', 'March', 'April', 'May', 'June',
+                        'July', 'August', 'September', 'October', 'November', 'December'];
+
 /** 화면 낭독용. '2026-08-18' 을 그대로 읽으면 알아들을 수 없다. */
-export function monthDayLabel(dateKey: string): string {
+export function monthDayLabel(dateKey: string, locale: Locale = 'ko'): string {
   const [, month, day] = dateKey.split('-');
+  if (locale === 'en') return `${MONTHS_EN[Number(month) - 1]} ${Number(day)}`;
   return `${Number(month)}월 ${Number(day)}일`;
 }
 
@@ -55,12 +63,14 @@ export function entriesInMonth(
     .sort((a, b) => a.date.localeCompare(b.date));
 }
 
-export function monthLabel(dateKey: string): string {
-  return `${Number(monthKeyOf(dateKey).slice(5))}월`;
+export function monthLabel(dateKey: string, locale: Locale = 'ko'): string {
+  const month = Number(monthKeyOf(dateKey).slice(5));
+  return locale === 'en' ? MONTHS_EN[month - 1] : `${month}월`;
 }
 
-export function monthTitle(dateKey: string): string {
+export function monthTitle(dateKey: string, locale: Locale = 'ko'): string {
   const [year, month] = monthKeyOf(dateKey).split('-');
+  if (locale === 'en') return `${MONTHS_EN_FULL[Number(month) - 1]} ${year}`;
   return `${year}년 ${Number(month)}월`;
 }
 

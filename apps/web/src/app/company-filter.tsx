@@ -2,13 +2,10 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { strings } from '@/lib/i18n';
 import type { Company } from '@/lib/entries';
 
-const VIEWS: { value: Company; label: string }[] = [
-  { value: 'mine', label: '내것' },
-  { value: 'both', label: '함께' },
-  { value: 'theirs', label: '상대것' },
-];
+const VIEWS: Company[] = ['mine', 'both', 'theirs'];
 
 /** 상대가 담은 것이 하나도 없으면 그리지 않는다 — 고를 것이 하나뿐인 필터는 소음이다. */
 export default function CompanyFilter({
@@ -18,9 +15,11 @@ export default function CompanyFilter({
   view: Company;
   onChange: (view: Company) => void;
 }) {
+  const s = strings();
+
   return (
-    <nav css={segmentStyle} aria-label="누구의 기록을 볼지">
-      {VIEWS.map(({ value, label }) => (
+    <nav css={segmentStyle} aria-label={s.whoseRecords}>
+      {VIEWS.map((value) => (
         <button
           key={value}
           type="button"
@@ -28,7 +27,7 @@ export default function CompanyFilter({
           onClick={() => onChange(value)}
           css={[choiceStyle, view === value && chosenStyle]}
         >
-          {label}
+          {s.company[value]}
         </button>
       ))}
     </nav>

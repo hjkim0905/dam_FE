@@ -11,6 +11,7 @@ import { EVENT, memoShape } from '@/lib/analytics';
 import { keepEntry } from '@/lib/api/entries';
 import { isApiError } from '@/lib/api/errors';
 import { requestUploadUrl } from '@/lib/api/photos';
+import { strings } from '@/lib/i18n';
 import { shouldAskForReview } from '@/lib/review';
 import { track } from '@/lib/track';
 import { useSession } from '../session';
@@ -81,6 +82,7 @@ function drawLoupe(
 export default function Record() {
   const router = useRouter();
   const { profile } = useSession();
+  const s = strings();
   const photoRef = useRef<HTMLDivElement>(null);
   const pixelsRef = useRef<ImageData | null>(null);
   const bitmapRef = useRef<ImageBitmap | null>(null);
@@ -212,7 +214,7 @@ export default function Record() {
         setError(
           isApiError(failure)
             ? failure.message
-            : '담지 못했어요. 잠시 뒤에 다시 시도해 주세요.'
+            : s.keepFailed
         );
       });
   };
@@ -253,7 +255,7 @@ export default function Record() {
             <img
               className="ph-no-capture"
               src={photo}
-              alt="오늘 담은 사진"
+              alt={s.photoOfToday}
               css={css`
                 width: 100%;
                 height: 100%;
@@ -281,14 +283,14 @@ export default function Record() {
           />
 
           <p css={hintStyle} style={{ opacity: picking ? 0 : 1 }}>
-            사진을 문질러 오늘의 색을 고르세요
+            {s.rubToPick}
           </p>
 
           <input
             className="ph-no-capture"
             value={memo}
             onChange={(e) => setMemo(e.target.value)}
-            placeholder="이 색에 담을 한 줄"
+            placeholder={s.memoPlaceholder}
             css={memoStyle}
           />
 
@@ -311,7 +313,7 @@ export default function Record() {
             `}
             style={{ backgroundColor: color }}
           >
-            담기
+            {s.keep}
           </button>
         </>
       ) : (
@@ -324,7 +326,7 @@ export default function Record() {
                 letter-spacing: -0.01em;
               `}
             >
-              오늘의 사진 한 장
+              {s.onePhotoToday}
             </span>
             <input
               type="file"
@@ -347,7 +349,7 @@ export default function Record() {
                   track(EVENT.photoPicked, { bytes: blob.size });
                 } catch {
                   track(EVENT.photoPicked, { failed: true });
-                  setError('사진을 읽지 못했어요. 다른 사진을 골라 주세요.');
+                  setError(s.photoFailed);
                 } finally {
                   setReading(false);
                 }
@@ -356,7 +358,7 @@ export default function Record() {
             />
           </label>
 
-          <p css={hintStyle}>찍거나 앨범에서 고르세요</p>
+          <p css={hintStyle}>{s.pickFromAlbum}</p>
         </>
       )}
 
@@ -373,7 +375,7 @@ export default function Record() {
         </p>
       )}
 
-      {reading && <LoadingCapsule label="사진을 읽고 있어요" />}
+      {reading && <LoadingCapsule label={s.readingPhoto} />}
 
       {ink && (
         <div

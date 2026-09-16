@@ -50,6 +50,7 @@ const MONTHS_EN_FULL = ['January', 'February', 'March', 'April', 'May', 'June',
 export function monthDayLabel(dateKey: string, locale: Locale = 'ko'): string {
   const [, month, day] = dateKey.split('-');
   if (locale === 'en') return `${MONTHS_EN[Number(month) - 1]} ${Number(day)}`;
+  if (locale === 'ja') return `${Number(month)}月${Number(day)}日`;
   return `${Number(month)}월 ${Number(day)}일`;
 }
 
@@ -65,12 +66,14 @@ export function entriesInMonth(
 
 export function monthLabel(dateKey: string, locale: Locale = 'ko'): string {
   const month = Number(monthKeyOf(dateKey).slice(5));
-  return locale === 'en' ? MONTHS_EN[month - 1] : `${month}월`;
+  if (locale === 'en') return MONTHS_EN[month - 1];
+  return locale === 'ja' ? `${month}月` : `${month}월`;
 }
 
 export function monthTitle(dateKey: string, locale: Locale = 'ko'): string {
   const [year, month] = monthKeyOf(dateKey).split('-');
   if (locale === 'en') return `${MONTHS_EN_FULL[Number(month) - 1]} ${year}`;
+  if (locale === 'ja') return `${year}年${Number(month)}月`;
   return `${year}년 ${Number(month)}월`;
 }
 

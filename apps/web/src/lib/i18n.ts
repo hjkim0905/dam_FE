@@ -1,6 +1,6 @@
 import type { Company } from './entries';
 
-export type Locale = 'ko' | 'en';
+export type Locale = 'ko' | 'en' | 'ja';
 
 /**
  * 모르는 언어는 한국어가 아니라 영어로 떨어뜨린다. 한국어를 기본으로 두면
@@ -11,6 +11,7 @@ export function pickLocale(languages: readonly string[]): Locale {
     const base = tag.toLowerCase().split('-')[0];
     if (base === 'ko') return 'ko';
     if (base === 'en') return 'en';
+    if (base === 'ja') return 'ja';
   }
   return 'en';
 }
@@ -203,13 +204,106 @@ const EN: typeof KO = {
   deleteAll: 'Erase everything',
 };
 
+const JA: typeof KO = {
+  title: '담. — 一日をひとつの色に',
+  description: '写真一枚から、今日をひとつの色で残します。',
+
+  weekdays: ['日', '月', '火', '水', '木', '金', '土'],
+  pickMonth: '年月を選ぶ',
+  openDay: (date: string) => `${date}の記録を見る`,
+  dayRecord: (date: string) => `${date}の記録`,
+  changeMonth: (title: string) => `${title}、別の月を選ぶ`,
+  photoOn: (date: string, mine: boolean) => `${date} ${mine ? '自分' : '相手'}の写真`,
+  pickYear: '年を選ぶ',
+  yearSuffix: '年',
+  monthSuffix: '月',
+
+  whoseRecords: 'どちらの記録を見るか',
+  company: { mine: '自分', both: 'ふたり', theirs: '相手' } as Record<Company, string>,
+  mineShort: '自分',
+  theirsShort: '相手',
+  keptByMe: '自分が',
+  keptByThem: '相手が',
+  keptSuffix: '残した',
+
+  nothingKept: 'まだ残した色がありません',
+  flowTitle: (year: number) => `${year}年の流れ`,
+  flowAria: (year: number) => `${year}年の流れ、別の年を選ぶ`,
+  colorsKept: (n: number) => `${n}色`,
+  colorsKeptAria: (year: number, n: number) => `${year}年に残した${n}色`,
+  keptBy: (mine: boolean): string => (mine ? '自分が残した' : '相手が残した'),
+  keptByAria: (mine: boolean): string => (mine ? '自分が残したもの' : '相手が残したもの'),
+  photoAlt: (date: string, mine: boolean) =>
+    `${date}に${mine ? '自分' : '相手'}が残した写真`,
+  colorOf: (mine: boolean): string => (mine ? '自分が残した色' : '相手が残した色'),
+  loadFailed: '記録を読み込めませんでした',
+  unreachable: '接続できません',
+  colorsAreSafe: '残した色はそのままです。',
+  checkConnection: '接続を確かめて、もう一度お試しください。',
+  retry: 'もう一度',
+  retrying: '接続しています',
+  updateReady: '新しいバージョンがあります',
+  updateToKeep: 'アップデートすると続けて残せます。',
+  update: 'アップデート',
+
+  keepToday: '今日の色を残す',
+  colorsOfMonth: (month: string) => `${month}の色`,
+  dropsKept: (n: number) => `${n}滴の記録`,
+  colorOnDay: (date: string) => `${date}の色`,
+  readingPhoto: '写真を読んでいます',
+  loading: '読み込んでいます',
+  somethingBroke: '問題が起きました',
+  reopenApp: 'アプリを開き直してください。',
+  photoOfToday: '今日の写真',
+  pickFromAlbum: '撮るか、アルバムから選んでください',
+  onePhotoToday: '今日の写真一枚',
+  rubToPick: '写真をこすって今日の色を選んでください',
+  memoPlaceholder: 'この色に添える一行',
+  keep: '残す',
+  keepFailed: '残せませんでした。少し経ってからお試しください。',
+  photoFailed: '写真を読めませんでした。別の写真を選んでください。',
+
+  room: '部屋',
+  alone: 'まだひとりで残しています。',
+  withPartner: (name: string) => `${name}さんと一緒に残しています。`,
+  makeInvite: '招待コードをつくる',
+  sendCode: 'このコードを相手に送ってください',
+  codeExpires: '一日が過ぎるとコードは期限切れになります。',
+  copyCode: 'コードをコピー',
+  copied: 'コピーしました',
+  copyFailed: 'コピーできませんでした。コードを書き写してください',
+  or: 'または',
+  receivedCode: '受け取った招待コード',
+  sixDigits: '六桁',
+  needSixDigits: '六桁を入力してください',
+  joinWithCode: 'このコードで入る',
+  leaveRoom: '部屋を出る',
+  tryLater: '少し経ってからお試しください',
+
+  me: '自分の情報',
+  name: '名前',
+  nameHint: '相手に見える名前',
+  keptColors: '残した色',
+  countOfColors: (n: number) => `${n}色`,
+  firstKept: 'はじめて残した日',
+  none: 'まだありません',
+
+  signOut: 'ログアウト',
+  signOutBody: '残した記録はそのままです。ログインし直せば続けて残せます。',
+  deleteAccount: '退会',
+  deleteAccountBody: 'これまでに残した色と写真、メモがすべて消えます。元に戻せません。',
+  deleteAll: 'すべて消す',
+};
+
 /**
  * 사전은 그리는 순간에 꺼낸다. 모듈 최상단에서 읽으면 파일을 불러오는 시점에
  * 한 번 굳어, 서버에서 그린 것과 브라우저에서 그린 것이 어긋난다.
  */
 export function strings(locale?: Locale): typeof KO {
   const chosen = locale ?? currentLocale();
-  return chosen === 'ko' ? KO : EN;
+  if (chosen === 'ko') return KO;
+  if (chosen === 'ja') return JA;
+  return EN;
 }
 
 export function currentLocale(): Locale {

@@ -17,8 +17,14 @@ test('pickLocale 은 지역이 붙어 있어도 알아본다', () => {
 });
 
 test('pickLocale 은 모르는 언어를 영어로 떨어뜨린다', () => {
-  assert.equal(pickLocale(['ja-JP']), 'en');
   assert.equal(pickLocale(['de-DE', 'fr-FR']), 'en');
+  assert.equal(pickLocale(['zh-CN']), 'en');
+});
+
+test('pickLocale 은 일본어도 알아본다', () => {
+  assert.equal(pickLocale(['ja-JP']), 'ja');
+  assert.equal(pickLocale(['ja']), 'ja');
+  assert.equal(pickLocale(['de-DE', 'ja-JP']), 'ja');
 });
 
 test('pickLocale 은 아는 언어가 나올 때까지 훑는다', () => {

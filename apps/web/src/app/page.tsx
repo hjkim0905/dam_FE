@@ -336,7 +336,7 @@ export default function Home() {
 
       <Sheet
         open={openDate !== null}
-        label={openDate ? `${monthDayLabel(openDate)} 기록` : ""}
+        label={openDate ? s.dayRecord(monthDayLabel(openDate, locale)) : ""}
         onClose={() => setOpenDate(null)}
       >
         {/* 홈은 내 것만 보는 자리다. 상대의 그날은 달력에서 함께 본다. */}

@@ -136,3 +136,10 @@ test('monthRange 는 윤년 2월을 안다', () => {
 test('yearRange 는 한 해를 덮는다', () => {
   assert.deepEqual(yearRange(2026), { from: '2026-01-01', to: '2026-12-31' });
 });
+
+/* 일본어는 한국어와 같은 숫자 표기를 쓰지만 사이를 띄우지 않는다. */
+test('날짜 도우미는 일본어를 한국어와 다르게 적는다', () => {
+  assert.equal(monthDayLabel('2026-08-01', 'ja'), '8月1日');
+  assert.equal(monthLabel('2026-09-16', 'ja'), '9月');
+  assert.equal(monthTitle('2026-09-16', 'ja'), '2026年9月');
+});

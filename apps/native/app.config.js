@@ -29,7 +29,11 @@ export default {
     /* 권한 문구와 앱 이름을 언어별로 갈라 준다. prebuild 가 이 파일들을
        ios/dam/<언어>.lproj/InfoPlist.strings 로 써서, 손으로 ios/ 를 고치지
        않아도 다음 prebuild 까지 남는다. */
-    locales: { ko: "./locales/ko.json", en: "./locales/en.json" },
+    locales: {
+      ko: "./locales/ko.json",
+      en: "./locales/en.json",
+      ja: "./locales/ja.json",
+    },
     platforms: ["ios"],
     icon: "./assets/icon.png",
     ios: {
@@ -43,7 +47,7 @@ export default {
         // 번들이 지원한다고 적은 언어로만 WebKit 이 사진 선택 시트를 그린다.
         // 빠뜨린 언어의 기기에서는 개발 지역인 한국어로 나온다.
         CFBundleDevelopmentRegion: "ko",
-        CFBundleLocalizations: ["ko", "en"],
+        CFBundleLocalizations: ["ko", "en", "ja"],
         // 없으면 사진 선택기를 띄우는 순간 iOS 가 앱을 종료한다. 실제 문구는
         // locales/ 가 언어별로 덮으므로 여기 값은 그 어느 쪽도 아닐 때의 바닥이다.
         NSCameraUsageDescription: "오늘의 사진을 찍어 그날의 색을 담습니다.",

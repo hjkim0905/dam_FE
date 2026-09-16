@@ -1,4 +1,4 @@
-export type Locale = "ko" | "en";
+export type Locale = "ko" | "en" | "ja";
 
 /**
  * 모르는 언어는 한국어가 아니라 영어로 떨어뜨린다. 한국어를 기본으로 두면
@@ -9,6 +9,7 @@ export function pickLocale(languages: readonly string[]): Locale {
     const base = tag.toLowerCase().split("-")[0];
     if (base === "ko") return "ko";
     if (base === "en") return "en";
+    if (base === "ja") return "ja";
   }
   return "en";
 }
@@ -88,6 +89,46 @@ const EN: typeof KO = {
   checkConnection: "Check your connection",
 };
 
+/* 日本語. */
+const JA: typeof KO = {
+  appName: "담.",
+  lead: "一日の写真一枚から\n色をひとつ残します",
+  agreeNote: "続けると利用規約とプライバシーポリシーに\n同意したことになります",
+  signInUnconfirmed: "ログインを確認できませんでした",
+  unreachableOnLaunch: "接続できません。少し経ってから開いてください",
+  tryLater: "少し経ってからお試しください",
+
+  askName: "何とお呼びしましょう",
+  nameLead: "一緒に残す人に見える名前です",
+  name: "名前",
+  agreeTerms: "利用規約に同意します",
+  agreePrivacy: "プライバシーポリシーに同意します",
+  read: "見る",
+  start: "はじめる",
+
+  unreachable: "接続できません",
+  unreachableBody: "残した色はそのままです。\n接続を確かめて、もう一度お試しください。",
+  retry: "もう一度",
+
+  menu: "メニュー",
+  me: "自分の情報",
+  room: "部屋",
+  termsAndPolicies: "規約とポリシー",
+  privacy: "プライバシーポリシー",
+  terms: "利用規約",
+  contact: "お問い合わせ",
+  signOut: "ログアウト",
+  deleteAccount: "退会",
+  loading: "読み込んでいます",
+  today: "今日",
+  calendar: "カレンダー",
+  flow: "流れ",
+  unnamed: "名前なし",
+  checkConnection: "接続を確かめてください",
+};
+
 export function strings(locale: Locale): typeof KO {
-  return locale === "ko" ? KO : EN;
+  if (locale === "ko") return KO;
+  if (locale === "ja") return JA;
+  return EN;
 }

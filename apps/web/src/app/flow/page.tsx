@@ -2,12 +2,14 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { strings } from '@/lib/i18n';
-import { useCallback, useEffect, useState } from 'react';
+import { ENTRIES } from '@/lib/query-keys';
+import { useCallback, useState } from 'react';
 import { bandOf, toDateKey, viewOf, yearRange, yearsSince } from '@/lib/entries';
-import type { Company, Entry } from '@/lib/entries';
-import { fetchEntries } from '@/lib/api/entries';
+import type { Company } from '@/lib/entries';
 import { useSession } from '../session';
+import useEntries from '../use-entries';
 import LoadFailed from '../load-failed';
 import CompanyFilter from '../company-filter';
 import Sheet from '../sheet';
@@ -15,29 +17,28 @@ import YearWheel from '../year-wheel';
 import useFocusReload from '../use-focus-reload';
 
 export default function Flow() {
-  const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [failed, setFailed] = useState(false);
   const [view, setView] = useState<Company>('both');
   const [chosenYear, setChosenYear] = useState<number | null>(null);
   const [pickingYear, setPickingYear] = useState(false);
   const { profile, refresh } = useSession();
+  const client = useQueryClient();
   const s = strings();
 
   const year = chosenYear ?? Number(toDateKey(new Date()).slice(0, 4));
   const together = profile.room !== null && profile.room.partner !== null;
 
-  const load = useCallback(() => {
-    let live = true;
-    fetchEntries(yearRange(year), viewOf(together ? view : 'mine'))
-      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
-      // 빈 배열로 넘기면 화면이 "아직 담은 색이 없어요" 라고 거짓말한다.
-      .catch(() => { if (live) setFailed(true); });
-    return () => { live = false; };
-  }, [year, view, together]);
+  const { entries, failed } = useEntries(
+    yearRange(year),
+    viewOf(together ? view : 'mine')
+  );
 
-  useEffect(load, [load]);
+  /* 탭에 들어온 사이 상대가 담았을 수 있다. 캐시를 버려야 다시 받는다. */
+  const reload = useCallback(
+    () => void client.invalidateQueries({ queryKey: ENTRIES }),
+    [client]
+  );
 
-  useFocusReload(load, refresh);
+  useFocusReload(reload, refresh);
 
   const shown = entries ?? [];
 
@@ -57,7 +58,7 @@ export default function Flow() {
         </button>
       </h1>
 
-      {failed ? <LoadFailed onRetry={load} /> : entries === null ? null : (
+      {failed ? <LoadFailed onRetry={reload} /> : entries === null ? null : (
         <>
           {together && <CompanyFilter view={view} onChange={setView} />}
 

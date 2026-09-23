@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import AnalyticsProvider, { PageViews } from './analytics';
 import EmotionProvider from './emotion-provider';
+import QueryProvider from './query-provider';
 import SessionProvider from './session';
 import TabReset from './tab-reset';
 import './globals.css';
@@ -45,7 +46,9 @@ export default function RootLayout({
           <PageViews />
           <EmotionProvider>
             <div id="screen">
-              <SessionProvider>{children}</SessionProvider>
+              <QueryProvider>
+                <SessionProvider>{children}</SessionProvider>
+              </QueryProvider>
             </div>
           </EmotionProvider>
         </AnalyticsProvider>

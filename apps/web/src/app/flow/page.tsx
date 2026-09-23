@@ -2,10 +2,8 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useQueryClient } from '@tanstack/react-query';
 import { strings } from '@/lib/i18n';
-import { ENTRIES } from '@/lib/query-keys';
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { bandOf, toDateKey, viewOf, yearRange, yearsSince } from '@/lib/entries';
 import type { Company } from '@/lib/entries';
 import { useSession } from '../session';
@@ -20,8 +18,7 @@ export default function Flow() {
   const [view, setView] = useState<Company>('both');
   const [chosenYear, setChosenYear] = useState<number | null>(null);
   const [pickingYear, setPickingYear] = useState(false);
-  const { profile, refresh } = useSession();
-  const client = useQueryClient();
+  const { profile } = useSession();
   const s = strings();
 
   const year = chosenYear ?? Number(toDateKey(new Date()).slice(0, 4));
@@ -32,13 +29,7 @@ export default function Flow() {
     viewOf(together ? view : 'mine')
   );
 
-  /* 탭에 들어온 사이 상대가 담았을 수 있다. 캐시를 버려야 다시 받는다. */
-  const reload = useCallback(
-    () => void client.invalidateQueries({ queryKey: ENTRIES }),
-    [client]
-  );
-
-  useFocusReload(reload, refresh);
+  const reload = useFocusReload();
 
   const shown = entries ?? [];
 

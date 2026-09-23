@@ -2,7 +2,6 @@
 "use client";
 
 import { css } from "@emotion/react";
-import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import {
   useCallback,
@@ -55,13 +54,11 @@ const DROP_GAP_REM = 0.5;
    눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
 const useBeforePaint =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
-import { ENTRIES } from "@/lib/query-keys";
 import useEntries from "./use-entries";
 import useFocusReload from "./use-focus-reload";
 
 export default function Home() {
   const { profile, me, refresh, signOut } = useSession();
-  const client = useQueryClient();
   const s = strings();
   const locale = currentLocale();
   const stripRef = useRef<HTMLDivElement>(null);
@@ -132,13 +129,13 @@ export default function Home() {
     [],
   );
 
-  const reload = useCallback(() => {
+  /* 자정을 넘겼을 수 있다. 날짜는 데이터와 별개로 다시 읽는다. */
+  const onFocus = useCallback(() => {
     setToday(toDateKey(new Date()));
-    void client.invalidateQueries({ queryKey: ENTRIES });
     showToday();
-  }, [client, showToday]);
+  }, [showToday]);
 
-  useFocusReload(reload, refresh);
+  const reload = useFocusReload(onFocus);
 
   const pitchOf = () =>
     (DROP_WIDTH_REM + DROP_GAP_REM) *

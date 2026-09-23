@@ -2,8 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { monthCells } from '@/lib/calendar';
@@ -21,7 +20,6 @@ import type { Company, Entry, Sides } from '@/lib/entries';
 import { EVENT } from '@/lib/analytics';
 import { track } from '@/lib/track';
 import { currentLocale, strings } from '@/lib/i18n';
-import { ENTRIES } from '@/lib/query-keys';
 import { useSession } from '../session';
 import useEntries from '../use-entries';
 import LoadFailed from '../load-failed';
@@ -99,8 +97,7 @@ export default function CalendarScreen() {
   // 고른 달이 없으면 이번 달이다. 상태로 두어야 휠이 바꿀 자리가 생긴다.
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
-  const { profile, me, refresh } = useSession();
-  const client = useQueryClient();
+  const { profile, me } = useSession();
   const s = strings();
   const locale = currentLocale();
 
@@ -113,17 +110,12 @@ export default function CalendarScreen() {
     viewOf(together ? view : 'mine')
   );
 
-  /* 탭에 들어온 사이 상대가 담았을 수 있다. 캐시를 버려야 다시 받는다. */
-  const reload = useCallback(
-    () => void client.invalidateQueries({ queryKey: ENTRIES }),
-    [client]
-  );
 
   useEffect(() => {
     track(EVENT.calendarViewed, { month: monthKey, together });
   }, [monthKey, together]);
 
-  useFocusReload(reload, refresh);
+  const reload = useFocusReload();
 
   const shown = entries ?? [];
 

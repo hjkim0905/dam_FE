@@ -2,6 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
@@ -12,6 +13,7 @@ import { keepEntry } from '@/lib/api/entries';
 import { isApiError } from '@/lib/api/errors';
 import { requestUploadUrl } from '@/lib/api/photos';
 import { strings } from '@/lib/i18n';
+import { ENTRIES } from '@/lib/query-keys';
 import { shouldAskForReview } from '@/lib/review';
 import { track } from '@/lib/track';
 import { useSession } from '../session';
@@ -81,6 +83,7 @@ function drawLoupe(
 
 export default function Record() {
   const router = useRouter();
+  const client = useQueryClient();
   const { profile } = useSession();
   const s = strings();
   const photoRef = useRef<HTMLDivElement>(null);
@@ -187,6 +190,10 @@ export default function Record() {
       photoKey: ticket.photoKey,
       memo: memo.trim() || undefined,
     });
+
+    /* 담기는 홈 탭 안에서 일어나 탭을 드나들지 않는다. 즉 FOCUS 가 오지 않으므로,
+       여기서 캐시를 버리지 않으면 돌아간 홈이 방금 담은 색이 빠진 것을 그린다. */
+    void client.invalidateQueries({ queryKey: ENTRIES });
   };
 
   const start = () => {

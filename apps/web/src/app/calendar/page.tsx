@@ -2,7 +2,7 @@
 'use client';
 
 import { css } from '@emotion/react';
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { monthCells } from '@/lib/calendar';
@@ -17,11 +17,11 @@ import {
   yearsSince,
 } from '@/lib/entries';
 import type { Company, Entry, Sides } from '@/lib/entries';
-import { fetchEntries } from '@/lib/api/entries';
 import { EVENT } from '@/lib/analytics';
 import { track } from '@/lib/track';
 import { currentLocale, strings } from '@/lib/i18n';
 import { useSession } from '../session';
+import useEntries from '../use-entries';
 import LoadFailed from '../load-failed';
 import DayDetail from '../day-detail';
 import CompanyFilter from '../company-filter';
@@ -92,16 +92,12 @@ function Day({
 import useFocusReload from '../use-focus-reload';
 
 export default function CalendarScreen() {
-  // 홈과 같은 이유로 '아직 모른다' 를 빈 배열과 구분한다. 빈 배열로 두면 첫 페인트에
-  // 사진 없는 달이 그려졌다가 채워지고, 필터가 뒤늦게 생기며 격자가 아래로 밀린다.
-  const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [failed, setFailed] = useState(false);
   const [view, setView] = useState<Company>('both');
   const [openDate, setOpenDate] = useState<string | null>(null);
   // 고른 달이 없으면 이번 달이다. 상태로 두어야 휠이 바꿀 자리가 생긴다.
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
-  const { profile, me, refresh } = useSession();
+  const { profile, me } = useSession();
   const s = strings();
   const locale = currentLocale();
 
@@ -109,22 +105,17 @@ export default function CalendarScreen() {
   // 방이 없으면 고를 것이 하나뿐이라 필터를 감춘다. 그때는 서버도 내것만 준다.
   const together = profile.room !== null && profile.room.partner !== null;
 
-  const load = useCallback(() => {
-    let live = true;
-    fetchEntries(monthRange(monthKey), viewOf(together ? view : 'mine'))
-      .then((found) => { if (live) { setFailed(false); setEntries(found); } })
-      // 빈 배열로 넘기면 화면이 "아직 담은 색이 없어요" 라고 거짓말한다.
-      .catch(() => { if (live) setFailed(true); });
-    return () => { live = false; };
-  }, [monthKey, view, together]);
+  const { entries, failed } = useEntries(
+    monthRange(monthKey),
+    viewOf(together ? view : 'mine')
+  );
 
-  useEffect(load, [load]);
 
   useEffect(() => {
     track(EVENT.calendarViewed, { month: monthKey, together });
   }, [monthKey, together]);
 
-  useFocusReload(load, refresh);
+  const reload = useFocusReload();
 
   const shown = entries ?? [];
 
@@ -145,7 +136,7 @@ export default function CalendarScreen() {
         </span>
       </button>
 
-      {failed ? <LoadFailed onRetry={load} /> : entries === null ? null : (
+      {failed ? <LoadFailed onRetry={reload} /> : entries === null ? null : (
         <>
           {together && (
             <CompanyFilter

@@ -24,8 +24,6 @@ import {
   toDateKey,
   yearsSince,
 } from "@/lib/entries";
-import type { Entry } from "@/lib/entries";
-import { fetchEntries } from "@/lib/api/entries";
 import { EVENT } from "@/lib/analytics";
 import { currentLocale, strings } from "@/lib/i18n";
 import { track } from "@/lib/track";
@@ -56,6 +54,7 @@ const DROP_GAP_REM = 0.5;
    눈에 보인다. 서버에는 레이아웃이 없으므로 그쪽에서는 평범한 effect 로 둔다. */
 const useBeforePaint =
   typeof window === "undefined" ? useEffect : useLayoutEffect;
+import useEntries from "./use-entries";
 import useFocusReload from "./use-focus-reload";
 
 export default function Home() {
@@ -63,42 +62,22 @@ export default function Home() {
   const s = strings();
   const locale = currentLocale();
   const stripRef = useRef<HTMLDivElement>(null);
-  // 읽기 전에는 빈 배열이 아니라 '아직 모른다' 여야 한다. 빈 배열로 두면 첫 페인트에
-  // 기록이 하나도 없는 화면이 그려졌다가 채워져서, 빈 자리가 떴다 사라진다.
-  const [entries, setEntries] = useState<Entry[] | null>(null);
-  const [failed, setFailed] = useState(false);
   const [centered, setCentered] = useState(0);
   const [openDate, setOpenDate] = useState<string | null>(null);
   const [chosenMonth, setChosenMonth] = useState<string | null>(null);
   const [pickingMonth, setPickingMonth] = useState(false);
   const [opened, setOpened] = useState<MenuAction | null>(null);
 
-  const today = toDateKey(new Date());
+  /* 렌더 중에 읽으면 리렌더가 없는 한 어제에 머문다. 탭마다 웹뷰가 따로 살아 있어
+     자정을 넘겨도 이 화면은 떠날 때 그대로이므로, 들어올 때 다시 읽는다. */
+  const [today, setToday] = useState(() => toDateKey(new Date()));
   const monthKey = chosenMonth ?? monthKeyOf(today);
   // 지난 달엔 담을 자리가 없다. 오늘은 이번 달을 보고 있을 때만 자리를 갖는다.
   const todayHere = monthKey === monthKeyOf(today) ? today : null;
 
   // 홈은 내가 담은 것만 보여준다. 방은 달력과 흐름에서 열린다.
   // 보고 있는 달만 받아 온다. 전부 받으면 기록이 쌓일수록 느려진다.
-  const load = useCallback(() => {
-    let live = true;
-    fetchEntries(monthRange(monthKey), "MINE")
-      .then((found) => {
-        if (live) {
-          setFailed(false);
-          setEntries(found);
-        }
-      })
-      // 빈 배열로 넘기면 화면이 "0방울의 기록" 이라고 거짓말한다.
-      .catch(() => {
-        if (live) setFailed(true);
-      });
-    return () => {
-      live = false;
-    };
-  }, [monthKey]);
-
-  useEffect(load, [load]);
+  const { entries, failed } = useEntries(monthRange(monthKey), "MINE");
 
   const thisMonth = entriesInMonth(entries ?? [], monthKey);
   const capturedToday =
@@ -150,12 +129,13 @@ export default function Home() {
     [],
   );
 
-  const reload = useCallback(() => {
-    load();
+  /* 자정을 넘겼을 수 있다. 날짜는 데이터와 별개로 다시 읽는다. */
+  const onFocus = useCallback(() => {
+    setToday(toDateKey(new Date()));
     showToday();
-  }, [load, showToday]);
+  }, [showToday]);
 
-  useFocusReload(reload, refresh);
+  const reload = useFocusReload(onFocus);
 
   const pitchOf = () =>
     (DROP_WIDTH_REM + DROP_GAP_REM) *
@@ -213,7 +193,7 @@ export default function Home() {
       </header>
 
       {failed ? (
-        <LoadFailed onRetry={load} />
+        <LoadFailed onRetry={reload} />
       ) : (
         <section
           ref={stripRef}

@@ -40,6 +40,7 @@ export default function AnalyticsProvider({ children }: { children: ReactNode })
       person_profiles: 'identified_only',
       /* 웹뷰의 쿠키는 앱을 지우면 같이 날아가고 탭마다 어긋나기도 한다. */
       persistence: 'localStorage',
+      request_batching: false,
     });
 
     /* 모든 이벤트에 따라붙는다. 앱에서 본 것과 브라우저에서 본 것을 갈라 보려면

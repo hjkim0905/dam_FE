@@ -5,10 +5,13 @@ set -uo pipefail
 
 input=$(cat)
 
-# 이미 강제 계속 상태면 다시 막지 않는다. 이 가드가 없으면 무한 루프가 된다.
-printf '%s' "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true' && exit 0
-
 cd "$(dirname "$0")/../.." || exit 0
+# 같은 코드를 두 번 막지는 않는다. stop_hook_active는 "한 번 막혔다"는 뜻이지
+# "이 코드를 검사했다"는 뜻이 아니라서, 막힌 뒤 고친 코드까지 그냥 보내 줬다.
+fingerprint=$( { git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 shasum; } | shasum | cut -d' ' -f1 )
+last="$(git rev-parse --git-dir)/dam-last-verified"
+[ "$(cat "$last" 2>/dev/null)" = "$fingerprint" ] && exit 0
+printf '%s' "$fingerprint" > "$last"
 
 failures=""
 

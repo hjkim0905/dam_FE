@@ -21,7 +21,14 @@
 
 </div>
 
-<!-- TODO 사진: 홈, 달력, 기록 흐름, 방, 하루 기록 화면 5장을 가로로 -->
+<p align="center">
+  <img width="15%" alt="홈" src="https://github.com/user-attachments/assets/25620525-b1f2-488a-bc7f-09983f13b18a" />
+  <img width="15%" alt="달력" src="https://github.com/user-attachments/assets/d37878f7-62e1-42f2-9abf-e689a3ee047b" />
+  <img width="15%" alt="기록 흐름" src="https://github.com/user-attachments/assets/7a9dde25-efa1-45ce-9183-d2992227918f" />
+  <img width="15%" alt="방" src="https://github.com/user-attachments/assets/73db95a4-9cfc-4799-ac57-53d3e8121916" />
+  <img width="15%" alt="하루 상세" src="https://github.com/user-attachments/assets/ef820a33-6ec2-4f4e-b2f7-93e20c3f798b" />
+  <img width="15%" alt="기록" src="https://github.com/user-attachments/assets/ada733b7-aea0-451f-9c86-73b571ab2dbb" />
+</p>
 
 <br>
 
@@ -63,7 +70,7 @@
 | 항목 | 결과 |
 |---|---|
 | 첫 기록 전환 | 설치한 42명 중 22명이 첫 기록까지 완료 |
-| 달력 사진 로딩 | 한 장당 1.0~2.3초 → 65~116ms |
+| 달력 사진 로딩 | 한 장당 1.0-2.3초 → 65-116ms |
 | 한 달 치 사진 용량 | 31장 기준 3.47MB → 0.50MB |
 | 달력 넘길 때 서버 부하 | 요청 8 → 6번 (25% 감소), DB 쿼리 26 → 20개 (23% 감소) |
 | 월 인프라 비용 | 0원 (무료 클라우드 구간만 사용) |
@@ -222,14 +229,5 @@ yarn ios      # 시뮬레이터
 iOS 26 이상만 지원합니다. 백엔드는 [dam_BE](https://github.com/hjkim0905/dam_BE)에 있습니다.
 
 <br>
-
-## 개발 기록
-
-| 글 | 주제 |
-|---|---|
-| [#1 앱보다 19초 영상을 먼저 만든 이유](https://bbin-guuuu.tistory.com/124) | 인터뷰와 Fake Door로 수요 확인 |
-| [#2 달력 사진은 왜 매번 다시 받았을까?](https://bbin-guuuu.tistory.com/125) | `next/image`와 서명된 URL의 캐시 키 |
-| [#3 리뷰 훅이 261번 중 249번 헛짚은 이유](https://bbin-guuuu.tistory.com/126) | Claude Code 하네스 구축과 실험 |
-| [#4 달력을 넘길 때마다 이미 본 달을 다시 받던 이유](https://bbin-guuuu.tistory.com/129) | TanStack Query 캐시를 데이터 성격별로 나누기 |
 
 <div align="right"><a href="#readme-top">맨 위로</a></div>

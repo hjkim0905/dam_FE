@@ -4,7 +4,7 @@
 import { css } from '@emotion/react';
 import { useEffect, useRef } from 'react';
 import { clampToTurn, constrainToSpine, foldFromDrag, turnProgress, type Point } from '@/lib/curl';
-import { spring, type Spring } from '@/lib/motion';
+import { spring, velocityOf, type Sample, type Spring } from '@/lib/motion';
 import { createBook, LEAF_GAP } from './gl/book-model';
 import { createSheet } from './gl/page-curl';
 import { blankTexture, coverTexture, pageTexture } from './gl/spike-art';
@@ -17,6 +17,10 @@ const CURL_RADIUS = PAGE.width * 0.16;
 const COMMIT_AT = 0.5;
 /* 이보다 빠르게 튕기면 절반이 안 돼도 넘긴다. 단위는 페이지 폭 / 초. */
 const FLICK_SPEED = 2.2;
+/* 튕긴 것으로 치려면 이만큼은 끌었어야 한다. 스치듯 건드린 손이 책장을 넘기지 않게. */
+const FLICK_MIN = 0.1;
+/* 용수철에 넘길 손 빠르기의 상한. 더 빠르면 종이가 거울 자리를 크게 지나쳐 펄럭인다. */
+const MAX_THROW = 6;
 const SETTLED = 1e-4;
 /* 이보다 덜 끈 접힘은 원통이 너무 작아 종이 두께 안에서 떨기만 한다. */
 const MIN_FOLD = 0.004;
@@ -24,7 +28,7 @@ const CLOSED_VIEW = PAGE.width * 1.3;
 const OPEN_VIEW = PAGE.width * 2.25;
 
 type Leaf = { turned: boolean; grab: Point; x: Spring; y: Spring };
-type Drag = { index: number; fromRight: boolean; start: Point; from: Point; last: Point; time: number; velocity: number };
+type Drag = { index: number; fromRight: boolean; start: Point; from: Point; samples: Sample[] };
 
 const still = (value: number): Spring => ({ value, velocity: 0 });
 const mirror = ({ x, y }: Point): Point => ({ x: -x, y });
@@ -80,7 +84,7 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     const grab = { x: PAGE.width, y: point.y };
     const from = fromRight ? grab : mirror(grab);
     leaves[index] = { ...leaves[index], grab, x: still(from.x), y: still(from.y) };
-    drag = { index, fromRight, start: point, from, last: point, time: event.timeStamp, velocity: 0 };
+    drag = { index, fromRight, start: point, from, samples: [{ time: event.timeStamp, x: point.x }] };
   };
 
   const onMove = (event: PointerEvent) => {
@@ -89,22 +93,22 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     const leaf = leaves[drag.index];
     const pulled = { x: drag.from.x + point.x - drag.start.x, y: drag.from.y + point.y - drag.start.y };
     const finger = drag.index === 0 ? pulled : constrainToSpine(leaf.grab, pulled, PAGE);
-    const seconds = Math.max(1e-3, (event.timeStamp - drag.time) / 1000);
-    /* 마지막 몇 프레임의 속도만 남긴다. 처음부터 평균을 내면 튕긴 것을 못 알아챈다. */
-    const velocity = drag.velocity * 0.6 + ((point.x - drag.last.x) / seconds) * 0.4;
-    drag = { ...drag, last: point, time: event.timeStamp, velocity };
+    drag = { ...drag, samples: [...drag.samples.slice(-12), { time: event.timeStamp, x: point.x }] };
     leaves[drag.index] = { ...leaf, x: still(finger.x), y: still(finger.y) };
   };
 
-  const onUp = () => {
+  const onUp = (event: PointerEvent) => {
     if (!drag) return;
     const leaf = leaves[drag.index];
     const progress = turnProgress(leaf.grab, fingerOf(leaf));
-    const flicked = drag.fromRight ? drag.velocity < -FLICK_SPEED : drag.velocity > FLICK_SPEED;
-    const pastHalf = drag.fromRight ? progress > COMMIT_AT : progress > 1 - COMMIT_AT;
-    const turned = drag.fromRight ? pastHalf || flicked : pastHalf && !flicked;
+    const velocity = velocityOf(drag.samples, event.timeStamp);
+    const travelled = drag.fromRight ? progress : 1 - progress;
+    const flicked = travelled > FLICK_MIN && (drag.fromRight ? velocity < -FLICK_SPEED : velocity > FLICK_SPEED);
+    const committed = travelled > COMMIT_AT || flicked;
+    const turned = drag.fromRight ? committed : !committed;
     /* 놓는 순간의 손 빠르기를 용수철에 넘겨야 던진 종이가 그 기세로 넘어간다. */
-    leaves[drag.index] = { ...leaf, turned, x: { ...leaf.x, velocity: drag.velocity } };
+    const thrown = Math.max(-MAX_THROW, Math.min(MAX_THROW, velocity));
+    leaves[drag.index] = { ...leaf, turned, x: { ...leaf.x, velocity: thrown } };
     drag = null;
   };
 
@@ -138,7 +142,9 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
 
     sheets.forEach((sheet, i) => {
       const { grab } = leaves[i + 1];
-      const finger = clampToTurn(grab, fingerOf(leaves[i + 1]));
+      /* 놓은 뒤 돌아가는 길에도 책등에 묶여 있어야 한다. 끄는 동안만 막으면 돌아가는
+         직선 경로에서 종이가 늘어나 찢긴 것처럼 보인다. */
+      const finger = constrainToSpine(grab, clampToTurn(grab, fingerOf(leaves[i + 1])), PAGE);
       const last = drawn[i + 1];
       if (last && gap(last, finger) < 1e-6) return;
       drawn[i + 1] = finger;

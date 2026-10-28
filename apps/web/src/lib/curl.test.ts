@@ -119,3 +119,23 @@ test('clampToTurn 은 가장자리 바깥과 거울 자리 너머로 손가락�
   assert.deepEqual(clampToTurn(grab, { x: -1.03, y: 0.4 }), { x: -1, y: 0.4 });
   assert.deepEqual(clampToTurn(grab, { x: 0.2, y: 0.7 }), { x: 0.2, y: 0.7 });
 });
+
+test('foldFromDrag 는 조금 끌면 가장자리만 들고 뒷면은 아직 보이지 않는다', () => {
+  const grab = { x: 10, y: 3 };
+  const fold = foldFromDrag(grab, { x: 9.9, y: 3 }, 0.5);
+  assert.ok(fold);
+  const [edgeX, , edgeZ] = bend(grab.x, grab.y, fold);
+  const [insideX] = bend(grab.x - 0.01, grab.y, fold);
+  near([edgeX], [9.9]);
+  assert.ok(edgeZ > 0, '가장자리가 들려야 한다');
+  assert.ok(insideX < edgeX, '바로 안쪽 점이 가장자리보다 바깥에 놓이면 종이가 뒤집혀 뒷면이 보인 것이다');
+});
+
+test('foldFromDrag 는 원통 반 바퀴를 넘겨 끌어도 이어진다', () => {
+  const grab = { x: 10, y: 3 };
+  const radius = 0.5;
+  const just = foldFromDrag(grab, { x: 10 - Math.PI * radius * 0.999, y: 3 }, radius);
+  const over = foldFromDrag(grab, { x: 10 - Math.PI * radius * 1.001, y: 3 }, radius);
+  assert.ok(just && over);
+  assert.ok(Math.abs(just.x - over.x) < 0.01);
+});

@@ -23,8 +23,11 @@ const PRESS = 1.08;
 const RATE = { curl: 14, sweep: 10, lift: 12, press: 18 };
 
 /* drag: 아직 붙어 있어 잡은 점이 손가락을 따라간다. hold: 떼어 들고 있거나 내려놓는 중이다. */
-type Motion = { mode: 'drag' | 'hold'; grab: Point; finger: Point; sweep: number; lift: number; scale: number };
-type Held = { index: number; detached: boolean; pointer: Point };
+type Motion = {
+  mode: 'drag' | 'hold'; grab: Point; finger: Point; direction: Point; sweep: number; lift: number; scale: number;
+};
+/* touch 는 손가락이 처음 닿은 스티커 위의 점이다. 들고 다니는 동안 이 점이 손가락 밑에 있다. */
+type Held = { index: number; detached: boolean; pointer: Point; touch: Point };
 
 const add = (a: Point, b: Point): Point => ({ x: a.x + b.x, y: a.y + b.y });
 const subtract = (a: Point, b: Point): Point => ({ x: a.x - b.x, y: a.y - b.y });
@@ -35,16 +38,22 @@ const toward = (from: Point, to: Point, rate: number, seconds: number): Point =>
 });
 const CENTER: Point = { x: SIZE / 2, y: SIZE / 2 };
 
-/** 가운데에서 잡은 점 쪽. 가운데를 잡았으면 오른쪽 위 모서리를 든다. */
-function outward(grab: Point): Point {
-  const away = subtract(grab, CENTER);
-  const length = lengthOf(away);
-  return length < 1e-6 ? { x: Math.SQRT1_2, y: Math.SQRT1_2 } : { x: away.x / length, y: away.y / length };
-}
+/** 손이 닿은 곳에서 가장 가까운 모서리. 스티커는 모서리부터 뗀다. 가운데를 잡은 점을
+    그대로 끌면 그 바깥쪽 절반이 한 번에 탁 접힌다. */
+const cornerNear = (touch: Point): Point => ({ x: touch.x < CENTER.x ? 0 : SIZE, y: touch.y < CENTER.y ? 0 : SIZE });
 
 function foldOf(state: Motion): Fold | null {
   if (state.mode === 'drag') return foldFromDrag(state.grab, state.finger, CURL_RADIUS);
-  return state.sweep > 1e-3 ? curlAt(state.grab, outward(state.grab), CURL_RADIUS, state.sweep) : null;
+  return state.sweep > 1e-3 ? curlAt(state.grab, state.direction, CURL_RADIUS, state.sweep) : null;
+}
+
+/** 붙어 있을 때 접힌 모양 그대로 들고 다니는 모양으로 넘긴다. 각도가 끊기면 툭 바뀐다. */
+function holdFrom(state: Motion): Motion {
+  const fold = foldFromDrag(state.grab, state.finger, CURL_RADIUS);
+  if (!fold) return { ...state, mode: 'hold', sweep: 0 };
+  const direction = { x: Math.cos(fold.angle), y: Math.sin(fold.angle) };
+  const wrapped = (state.grab.x - fold.x) * direction.x + (state.grab.y - fold.y) * direction.y;
+  return { ...state, mode: 'hold', direction, sweep: Math.min(Math.PI, wrapped / CURL_RADIUS) };
 }
 
 function mountPeel(canvas: HTMLCanvasElement): () => void {
@@ -65,7 +74,7 @@ function mountPeel(canvas: HTMLCanvasElement): () => void {
     return sticker;
   });
   const motion: Motion[] = stickers.map(() => ({
-    mode: 'drag', grab: CENTER, finger: CENTER, sweep: 0, lift: 0, scale: 1,
+    mode: 'drag', grab: CENTER, finger: CENTER, direction: { x: 1, y: 0 }, sweep: 0, lift: 0, scale: 1,
   }));
   let held: Held | null = null;
 
@@ -80,9 +89,10 @@ function mountPeel(canvas: HTMLCanvasElement): () => void {
     const world = stage.toTable(event.clientX, event.clientY);
     if (index < 0 || !world) return;
     canvas.setPointerCapture(event.pointerId);
-    const grab = toLocal(index, world);
+    const touch = toLocal(index, world);
+    const grab = cornerNear(touch);
     motion[index] = { ...motion[index], mode: 'drag', grab, finger: grab, sweep: 0 };
-    held = { index, detached: false, pointer: world };
+    held = { index, detached: false, pointer: world, touch };
     /* 집은 것이 다른 스티커 아래에 깔리지 않게 그리는 순서를 맨 뒤로 보낸다. */
     stage.scene.remove(stickers[index].group);
     stage.scene.add(stickers[index].group);
@@ -94,14 +104,12 @@ function mountPeel(canvas: HTMLCanvasElement): () => void {
     held = { ...held, pointer: world };
     if (held.detached) return;
     const state = motion[held.index];
-    const pulled = subtract(toLocal(held.index, world), state.grab);
-    const distance = lengthOf(pulled);
-    if (distance < DETACH_AT) {
+    const pulled = subtract(toLocal(held.index, world), held.touch);
+    if (lengthOf(pulled) < DETACH_AT) {
       motion[held.index] = { ...state, finger: add(state.grab, pulled) };
       return;
     }
-    /* 붙어 있을 때는 잡은 점이 원통을 반 바퀴 돈 상태였다. 그 각도에서 출발해 풀어야 툭 바뀌지 않는다. */
-    motion[held.index] = { ...state, mode: 'hold', sweep: Math.PI };
+    motion[held.index] = holdFrom(state);
     held = { ...held, detached: true };
   };
 
@@ -130,9 +138,10 @@ function mountPeel(canvas: HTMLCanvasElement): () => void {
       motion[i] = next;
       const fold = foldOf(next);
 
-      /* 떨어진 스티커는 들린 잡은 점이 늘 손가락 밑에 오도록 통째로 옮긴다. */
+      /* 떨어진 스티커는 처음 손이 닿은 점이 늘 손가락 밑에 오도록 통째로 옮긴다. */
       if (mine?.detached) {
-        const [x, y] = fold ? bend(next.grab.x, next.grab.y, fold) : [next.grab.x, next.grab.y];
+        const { touch } = mine;
+        const [x, y] = fold ? bend(touch.x, touch.y, fold) : [touch.x, touch.y];
         sticker.group.position.set(mine.pointer.x - x, mine.pointer.y - y, 0.004);
       }
       sticker.group.scale.setScalar(next.scale);

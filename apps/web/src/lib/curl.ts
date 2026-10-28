@@ -43,9 +43,26 @@ export function bend(px: number, py: number, fold: Fold): Point3 {
 }
 
 /**
- * 잡은 점이 손가락 바로 위에 오도록 접힘선을 놓는다. 접힘선은 잡은 점에서 손가락
- * 쪽으로 (끈 거리 + 원통 반 바퀴) 의 절반만큼 들어간 자리다. 조금만 끌었을 때는
- * 원통을 끈 거리에 맞춰 줄여서, 손을 대자마자 종이가 툭 솟지 않게 한다.
+ * 원통에 감긴 길이 a 의 점이 접힘선에서 얼마나 떨어져 보이는지(위에서 본 거리)를 뺀 값.
+ * a - R sin(a/R) 이 끈 거리와 같아지는 a 를 찾는다. 0 에서 기울기가 0 이라 뉴턴법은
+ * 처음 몇 픽셀을 끌 때 흔들려서 이분법을 쓴다.
+ */
+function wrapFor(distance: number, radius: number): number {
+  let low = 0;
+  let high = Math.PI * radius;
+  for (let i = 0; i < 60; i += 1) {
+    const mid = (low + high) / 2;
+    if (mid - radius * Math.sin(mid / radius) < distance) low = mid;
+    else high = mid;
+  }
+  return (low + high) / 2;
+}
+
+/**
+ * 잡은 점이 손가락 바로 위에 오도록 접힘선을 놓는다. 원통 반 바퀴보다 덜 끌었으면
+ * 잡은 점은 아직 원통 위에 있어서, 가장자리가 먼저 들리고 뒷면은 끌수록 드러난다.
+ * 더 끌면 잡은 점이 원통을 넘어 뒤집혀 눕는다. 원통을 끈 거리에 맞춰 줄이면 손을
+ * 대자마자 가장자리가 뒤집혀 뒷면부터 보인다.
  */
 export function foldFromDrag(grab: Point, finger: Point, radius: number): Fold | null {
   const dx = finger.x - grab.x;
@@ -55,9 +72,9 @@ export function foldFromDrag(grab: Point, finger: Point, radius: number): Fold |
 
   const nx = -dx / distance;
   const ny = -dy / distance;
-  const r = Math.min(radius, distance / Math.PI);
-  const reach = (distance + Math.PI * r) / 2;
-  return { x: grab.x - nx * reach, y: grab.y - ny * reach, angle: Math.atan2(ny, nx), radius: r };
+  const half = Math.PI * radius;
+  const reach = radius <= 0 || distance >= half ? (distance + half) / 2 : wrapFor(distance, radius);
+  return { x: grab.x - nx * reach, y: grab.y - ny * reach, angle: Math.atan2(ny, nx), radius };
 }
 
 const distanceTo = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);

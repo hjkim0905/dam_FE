@@ -13,7 +13,14 @@ import { createStage } from './gl/stage';
 const PAGE = { width: 1, height: 1.4 };
 const SHEETS = 4;
 const CURL_RADIUS = PAGE.width * 0.16;
-const SETTLE_RATE = 8;
+const SETTLE_RATE = 12;
+/* 거의 제자리에 왔으면 붙인다. 지수 감쇠는 끝이 길어서, 남은 작은 접힘이 겹친 종이와
+   깜빡이며 지지직거렸다. */
+const SNAP = 0.003;
+/* 이보다 덜 끈 접힘은 원통이 너무 작아 종이 두께 안에서 떨기만 한다. */
+const MIN_FOLD = 0.004;
+const CLOSED_VIEW = PAGE.width * 1.3;
+const OPEN_VIEW = PAGE.width * 2.25;
 /* 이만큼 넘겼으면 손을 떼도 끝까지 넘어간다. */
 const COMMIT_AT = 0.3;
 const TAP_SLOP = 0.02;
@@ -25,9 +32,19 @@ type Drag = { index: number; fromRight: boolean; start: Point };
 
 const mirror = ({ x, y }: Point): Point => ({ x: -x, y });
 const goalOf = (leaf: Leaf): Point => (leaf.turned ? mirror(leaf.grab) : leaf.grab);
+const gap = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
+
+function settle(leaf: Leaf, seconds: number, instantly: boolean): Point {
+  const goal = goalOf(leaf);
+  if (instantly || gap(leaf.finger, goal) < SNAP) return goal;
+  return {
+    x: approach(leaf.finger.x, goal.x, seconds, SETTLE_RATE),
+    y: approach(leaf.finger.y, goal.y, seconds, SETTLE_RATE),
+  };
+}
 
 function mountBook(canvas: HTMLCanvasElement): () => void {
-  const stage = createStage(canvas, { width: PAGE.width * 2.25, height: PAGE.height * 1.2 });
+  const stage = createStage(canvas, { width: CLOSED_VIEW, height: PAGE.height * 1.2 });
   const font = getComputedStyle(document.body).fontFamily;
 
   const book = createBook(PAGE, { outside: coverTexture(font), inside: blankTexture() }, SHEETS);
@@ -87,26 +104,47 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
 
+  /* 지난 프레임에 그린 손가락 자리. 그대로면 정점을 다시 계산하지 않는다. */
+  const drawn: (Point | null)[] = leaves.map(() => null);
+  let coverDrawn = -1;
+
   stage.run((seconds) => {
+    let moved = false;
     leaves.forEach((leaf, i) => {
-      if (drag?.index === i) return;
-      const goal = goalOf(leaf);
-      const finger = reduceMotion ? goal : {
-        x: approach(leaf.finger.x, goal.x, seconds, SETTLE_RATE),
-        y: approach(leaf.finger.y, goal.y, seconds, SETTLE_RATE),
-      };
-      leaves[i] = { ...leaf, finger };
+      if (drag?.index !== i) leaves[i] = { ...leaf, finger: settle(leaf, seconds, reduceMotion) };
     });
 
-    book.openCover(turnProgress(leaves[0].grab, leaves[0].finger));
+    const cover = turnProgress(leaves[0].grab, leaves[0].finger);
+    if (cover !== coverDrawn) {
+      coverDrawn = cover;
+      book.openCover(cover);
+      /* 닫힌 책은 표지가 가운데, 펼친 책은 책등이 가운데다. 여는 만큼 카메라가 따라간다. */
+      stage.frame({
+        x: (PAGE.width / 2) * (1 - cover),
+        width: CLOSED_VIEW + (OPEN_VIEW - CLOSED_VIEW) * cover,
+        height: PAGE.height * 1.2,
+      });
+      moved = true;
+    }
+
     sheets.forEach((sheet, i) => {
       const { grab, finger } = leaves[i + 1];
+      const last = drawn[i + 1];
+      if (last && gap(last, finger) < 1e-6) return;
+      drawn[i + 1] = finger;
+      moved = true;
+
       const progress = turnProgress(grab, finger);
-      const fold = foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
+      const fold = gap(grab, finger) < MIN_FOLD ? null : foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
       const right = book.restZ + (SHEETS - i) * LEAF_GAP;
       const left = book.restZ + (i + 1) * LEAF_GAP;
+      /* 가만히 놓인 종이끼리는 그림자를 주고받지 않는다. 0.0025 간격에서 서로 얼룩진다. */
+      sheet.meshes.forEach((mesh) => {
+        mesh.castShadow = progress > 0 && progress < 1;
+      });
       sheet.shape(fold, right + (left - right) * progress);
     });
+    return moved;
   });
 
   return () => {

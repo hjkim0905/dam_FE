@@ -138,6 +138,7 @@ function mountPeel(canvas: HTMLCanvasElement): () => void {
       sticker.group.scale.setScalar(next.scale);
       sticker.shape(fold, next.lift);
     });
+    return true;
   });
 
   return () => {

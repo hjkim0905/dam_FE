@@ -22,7 +22,10 @@ export type Stage = {
   /** 화면 좌표를 책상 면(z = 0) 위의 점으로 바꾼다. */
   toTable: (clientX: number, clientY: number) => Vector3 | null;
   pick: (clientX: number, clientY: number, targets: Parameters<Raycaster['intersectObjects']>[0]) => ReturnType<Raycaster['intersectObjects']>;
-  run: (frame: (seconds: number) => void) => void;
+  /** 화면 가운데에 둘 x 와 꽉 채울 크기. 닫힌 책과 펼친 책은 가운데가 다르다. */
+  frame: (view: { x: number; width: number; height: number }) => void;
+  /** frame 이 false 를 돌려주면 그 프레임은 그리지 않는다. 멈춘 책을 매번 다시 그릴 이유가 없다. */
+  run: (frame: (seconds: number) => boolean) => void;
   dispose: () => void;
 };
 
@@ -39,10 +42,11 @@ export function createStage(
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = PCFShadowMap;
+  renderer.shadowMap.autoUpdate = false;
 
   const scene = new Scene();
-  scene.add(new HemisphereLight(0xffffff, 0xe8e0d4, 2.6));
-  const sun = new DirectionalLight(0xffffff, 1.1);
+  scene.add(new HemisphereLight(0xffffff, 0xfff1e6, 3));
+  const sun = new DirectionalLight(0xffffff, 0.7);
   sun.position.set(-1.2, 1.8, 4);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
@@ -59,16 +63,24 @@ export function createStage(
   const raycaster = new Raycaster();
   const table = new Plane(new Vector3(0, 0, 1), 0);
 
+  let framed = { x: 0, ...view };
+  let dirty = true;
+
+  const aim = () => {
+    const half = Math.tan((FOV * Math.PI) / 360);
+    const distance = Math.max(framed.height / 2 / half, framed.width / 2 / (half * camera.aspect));
+    camera.position.set(framed.x, -distance * tilt, distance);
+    camera.lookAt(framed.x, 0, 0);
+  };
+
   const fit = () => {
     const { clientWidth: width, clientHeight: height } = canvas;
     if (width === 0 || height === 0) return;
     renderer.setSize(width, height, false);
     camera.aspect = width / height;
-    const half = Math.tan((FOV * Math.PI) / 360);
-    const distance = Math.max(view.height / 2 / half, view.width / 2 / (half * camera.aspect));
-    camera.position.set(0, -distance * tilt, distance);
-    camera.lookAt(0, 0, 0);
     camera.updateProjectionMatrix();
+    aim();
+    dirty = true;
   };
   fit();
   const observer = new ResizeObserver(fit);
@@ -94,12 +106,20 @@ export function createStage(
       pointer(clientX, clientY);
       return raycaster.intersectObjects(targets, false);
     },
+    frame: (next) => {
+      framed = next;
+      aim();
+    },
     run: (frame) => {
       let last = performance.now();
       const tick = (now: number) => {
-        frame(Math.min(0.05, (now - last) / 1000));
+        const moved = frame(Math.min(0.05, (now - last) / 1000));
         last = now;
-        renderer.render(scene, camera);
+        if (moved || dirty) {
+          renderer.shadowMap.needsUpdate = true;
+          renderer.render(scene, camera);
+          dirty = false;
+        }
         handle = requestAnimationFrame(tick);
       };
       handle = requestAnimationFrame(tick);

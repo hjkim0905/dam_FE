@@ -1,16 +1,15 @@
 import {
   BoxGeometry,
-  CanvasTexture,
   Group,
   Mesh,
   MeshStandardMaterial,
   PlaneGeometry,
   RepeatWrapping,
   ShadowMaterial,
-  SRGBColorSpace,
   type Texture,
 } from 'three';
 import type { Size } from '@/lib/curl';
+import { pixelCanvas } from './pixel';
 
 /* 넘기는 몇 장 아래에 깔린 나머지 속지. 실제로 넘기지는 않지만 이 두께가 있어야 책이다. */
 export const BLOCK_THICKNESS = 0.035;
@@ -18,28 +17,18 @@ export const LEAF_GAP = 0.0025;
 const BOARD_THICKNESS = 0.018;
 /* 하드커버는 속지보다 사방으로 조금 크다. 이 테두리가 보여야 표지가 판으로 읽힌다. */
 const OVERHANG = 0.025;
-const PAPER = '#f7f3ea';
+const PAPER = '#fffaf0';
+const BOARD_EDGE = 0xe49aab;
 
-function canvasTexture(width: number, height: number, draw: (context: CanvasRenderingContext2D) => void): CanvasTexture {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const context = canvas.getContext('2d');
-  if (context) draw(context);
-  const texture = new CanvasTexture(canvas);
-  texture.colorSpace = SRGBColorSpace;
-  return texture;
-}
-
-/** 종이 묶음의 옆면. 얇은 줄이 겹쳐 보여야 종이가 여러 장인 것을 안다. */
-function edgeTexture(across: boolean): CanvasTexture {
-  const texture = canvasTexture(64, 64, (context) => {
-    context.fillStyle = '#efe8da';
-    context.fillRect(0, 0, 64, 64);
-    context.fillStyle = 'rgba(120, 100, 80, 0.18)';
-    for (let i = 0; i < 64; i += 4) {
-      if (across) context.fillRect(i, 0, 1, 64);
-      else context.fillRect(0, i, 64, 1);
+/** 종이 묶음의 옆면. 한 칸짜리 줄이 겹쳐 보여야 종이가 여러 장인 것을 안다. */
+function edgeTexture(across: boolean): Texture {
+  const texture = pixelCanvas(16, 16, (paint) => {
+    paint.fillStyle = '#f6eee2';
+    paint.fillRect(0, 0, 16, 16);
+    paint.fillStyle = '#e3d6c4';
+    for (let i = 0; i < 16; i += 2) {
+      if (across) paint.fillRect(i, 0, 1, 16);
+      else paint.fillRect(0, i, 16, 1);
     }
   });
   texture.wrapS = RepeatWrapping;
@@ -47,27 +36,24 @@ function edgeTexture(across: boolean): CanvasTexture {
   return texture;
 }
 
-/** 묶음 윗면. 책등 쪽이 어둡다. spineAtLeft 는 텍스처의 왼쪽 끝이 책등인지. */
-function gutterTexture(spineAtLeft: boolean): CanvasTexture {
-  return canvasTexture(256, 16, (context) => {
-    context.fillStyle = PAPER;
-    context.fillRect(0, 0, 256, 16);
-    const gradient = context.createLinearGradient(spineAtLeft ? 0 : 256, 0, spineAtLeft ? 40 : 216, 0);
-    gradient.addColorStop(0, 'rgba(60, 45, 30, 0.35)');
-    gradient.addColorStop(1, 'rgba(60, 45, 30, 0)');
-    context.fillStyle = gradient;
-    context.fillRect(0, 0, 256, 16);
+/** 묶음 윗면. 책등 쪽 몇 칸이 계단처럼 어두워진다. spineAtLeft 는 왼쪽 끝이 책등인지. */
+function gutterTexture(spineAtLeft: boolean): Texture {
+  return pixelCanvas(88, 4, (paint) => {
+    paint.fillStyle = PAPER;
+    paint.fillRect(0, 0, 88, 4);
+    ['#d9cbb8', '#e6dccd', '#f1eadf'].forEach((shade, i) => {
+      paint.fillStyle = shade;
+      paint.fillRect(spineAtLeft ? i * 2 : 86 - i * 2, 0, 2, 4);
+    });
   });
 }
 
 function pageBlock(page: Size, spineAtLeft: boolean): Mesh {
-  const along = edgeTexture(false);
-  const across = edgeTexture(true);
-  const edge = (map: Texture) => new MeshStandardMaterial({ map, roughness: 1 });
-  const top = new MeshStandardMaterial({ map: gutterTexture(spineAtLeft), roughness: 0.95 });
+  const edge = (across: boolean) => new MeshStandardMaterial({ map: edgeTexture(across), roughness: 1 });
+  const top = new MeshStandardMaterial({ map: gutterTexture(spineAtLeft), roughness: 1 });
   /* BoxGeometry 의 면 순서는 +x, -x, +y, -y, +z, -z 다. */
   const block = new Mesh(new BoxGeometry(page.width, page.height, BLOCK_THICKNESS), [
-    edge(across), edge(across), edge(along), edge(along), top, edge(along),
+    edge(true), edge(true), edge(false), edge(false), top, edge(false),
   ]);
   block.position.set((spineAtLeft ? 1 : -1) * (page.width / 2), 0, BLOCK_THICKNESS / 2);
   block.castShadow = true;
@@ -76,13 +62,13 @@ function pageBlock(page: Size, spineAtLeft: boolean): Mesh {
 }
 
 function board(page: Size, faces: { outside: Texture; inside: Texture }): Mesh {
-  const cloth = new MeshStandardMaterial({ color: 0x5c2733, roughness: 0.8 });
+  const cloth = new MeshStandardMaterial({ color: BOARD_EDGE, roughness: 1 });
   const width = page.width + OVERHANG;
   const height = page.height + OVERHANG * 2;
   const mesh = new Mesh(new BoxGeometry(width, height, BOARD_THICKNESS), [
     cloth, cloth, cloth, cloth,
-    new MeshStandardMaterial({ map: faces.outside, roughness: 0.75 }),
-    new MeshStandardMaterial({ map: faces.inside, roughness: 0.9 }),
+    new MeshStandardMaterial({ map: faces.outside, roughness: 1 }),
+    new MeshStandardMaterial({ map: faces.inside, roughness: 1 }),
   ]);
   mesh.position.x = width / 2;
   mesh.castShadow = true;
@@ -106,7 +92,7 @@ export type Book = {
 export function createBook(page: Size, cover: { outside: Texture; inside: Texture }, leaves: number): Book {
   const group = new Group();
 
-  const desk = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: 0.16 }));
+  const desk = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: 0.1 }));
   desk.position.z = -BOARD_THICKNESS;
   desk.receiveShadow = true;
 

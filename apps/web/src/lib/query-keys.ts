@@ -10,3 +10,11 @@ export const ENTRIES = ['entries'] as const;
 export function entriesKey(range: DateRange, view: View) {
   return [...ENTRIES, range.from, range.to, view] as const;
 }
+
+/** 책장. 책을 새로 펼치거나 표지 색을 바꾸면 무효화한다. */
+export const SHELF = ['diaries'] as const;
+
+/** 한 권의 페이지와 붙인 것. 둘이 꾸미므로 탭에 들어올 때마다 다시 읽는다. */
+export function pagesKey(diaryId: number) {
+  return [...SHELF, diaryId, 'pages'] as const;
+}

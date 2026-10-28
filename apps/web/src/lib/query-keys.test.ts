@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { ENTRIES, entriesKey } from './query-keys';
+import { ENTRIES, entriesKey, pagesKey, SHELF } from './query-keys';
 
 const SEPTEMBER = { from: '2026-09-01', to: '2026-09-30' };
 const AUGUST = { from: '2026-08-01', to: '2026-08-31' };
@@ -33,4 +33,9 @@ test('모든 키가 ENTRIES 로 시작해 한꺼번에 무효화된다', () => {
   const keys = [entriesKey(SEPTEMBER, 'MINE'), entriesKey(AUGUST, 'THEIRS')];
 
   for (const key of keys) assert.deepEqual(key.slice(0, ENTRIES.length), ENTRIES);
+});
+
+test('pagesKey 는 책장 키 아래에 있어서 책장을 무효화하면 페이지도 같이 낡는다', () => {
+  assert.deepEqual(pagesKey(7).slice(0, SHELF.length), [...SHELF]);
+  assert.notDeepEqual(pagesKey(7), pagesKey(8));
 });

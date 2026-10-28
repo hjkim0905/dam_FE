@@ -60,3 +60,10 @@ export function pixelAt(
 
   return { r: rgba[offset], g: rgba[offset + 1], b: rgba[offset + 2] };
 }
+
+/** 색을 amount 만큼 어둡게(양수) 또는 밝게(음수) 한다. 표지 색에서 테두리 색을 뽑을 때 쓴다. */
+export function shade(hex: string, amount: number): string {
+  const value = Number.parseInt(hex.slice(1), 16);
+  const channel = (shift: number) => Math.max(0, Math.min(255, Math.round(((value >> shift) & 255) * (1 - amount))));
+  return `#${[16, 8, 0].map((shift) => channel(shift).toString(16).padStart(2, '0')).join('')}`;
+}

@@ -80,6 +80,8 @@ export type Book = {
   readonly group: Group;
   /** 표지를 연 정도. 0 이면 닫혀 오른쪽 위에 덮여 있다. */
   openCover: (progress: number) => void;
+  /** 표지 색을 바꾸면 그림만 갈아 끼운다. 책을 다시 만들면 펼쳐 둔 자리를 잃는다. */
+  setCover: (outside: Texture) => void;
   /** 오른쪽 묶음 위, 넘길 낱장들이 쌓이기 시작하는 높이. */
   readonly restZ: number;
   /** 열린 표지 안쪽 면의 높이. 넘긴 낱장이 여기서부터 쌓인다. */
@@ -104,6 +106,7 @@ export function createBook(page: Size, cover: { outside: Texture; inside: Textur
   const right = pageBlock(page, true);
 
   const front = board(page, cover);
+  const outsideFace = (front.material as MeshStandardMaterial[])[4];
   const hinge = new Group();
   hinge.add(front);
 
@@ -121,6 +124,10 @@ export function createBook(page: Size, cover: { outside: Texture; inside: Textur
   return {
     group,
     openCover,
+    setCover: (outside) => {
+      outsideFace.map = outside;
+      outsideFace.needsUpdate = true;
+    },
     restZ: BLOCK_THICKNESS,
     leftZ: 0,
     dispose: () => {

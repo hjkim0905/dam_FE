@@ -3,15 +3,17 @@
 
 import { css } from '@emotion/react';
 import { useEffect, useRef } from 'react';
+import type { Texture } from 'three';
+import type { Book as BookData, DiaryPage } from '@/lib/api/diary';
 import { clampToTurn, constrainToSpine, foldFromDrag, turnProgress, type Point } from '@/lib/curl';
 import { spring, velocityOf, type Sample, type Spring } from '@/lib/motion';
 import { createBook, LEAF_GAP } from './gl/book-model';
+import { coverTexture, sideTexture } from './gl/cover-art';
 import { createSheet } from './gl/page-curl';
-import { blankTexture, coverTexture, pageTexture } from './gl/spike-art';
 import { createStage } from './gl/stage';
+import type { Images } from './page-art';
 
 const PAGE = { width: 1, height: 1.4 };
-const SHEETS = 4;
 const CURL_RADIUS = PAGE.width * 0.16;
 /* 절반은 넘겨야 넘어간다. 덜 끌고 놓으면 펴지며 돌아온다. */
 const COMMIT_AT = 0.5;
@@ -24,11 +26,18 @@ const MAX_THROW = 6;
 const SETTLED = 1e-4;
 /* 이보다 덜 끈 접힘은 원통이 너무 작아 종이 두께 안에서 떨기만 한다. */
 const MIN_FOLD = 0.004;
+const TAP_SLOP = 0.02;
 const CLOSED_VIEW = PAGE.width * 1.3;
 const OPEN_VIEW = PAGE.width * 2.25;
+/* 펼친 곳에서 이만큼 떨어진 장까지만 그림을 들고 있는다. 한 면이 0.7MB 라 다 들면 수백 MB 다. */
+const PAINTED_AROUND = 2;
 
 type Leaf = { turned: boolean; grab: Point; x: Spring; y: Spring };
 type Drag = { index: number; fromRight: boolean; start: Point; from: Point; samples: Sample[] };
+
+export type Art = { book: BookData; pages: readonly DiaryPage[]; images: Images };
+
+type Controller = { repaint: (art: Art) => void; turned: () => number; dispose: () => void };
 
 const still = (value: number): Spring => ({ value, velocity: 0 });
 const mirror = ({ x, y }: Point): Point => ({ x: -x, y });
@@ -36,8 +45,9 @@ const fingerOf = (leaf: Leaf): Point => ({ x: leaf.x.value, y: leaf.y.value });
 const goalOf = (leaf: Leaf): Point => (leaf.turned ? mirror(leaf.grab) : leaf.grab);
 const gap = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
 
+/** 페이지 뒤에 빈 면을 하나 더 둔다. 거기를 눌러 새 페이지를 시작한다. */
+export const sheetsFor = (pages: number): number => Math.max(1, Math.ceil((pages + 1) / 2));
 
-/** 놓은 종이는 용수철처럼 펴지며 제자리로 간다. 다 왔으면 멈춰 세워 더 그리지 않는다. */
 function settle(leaf: Leaf, seconds: number, instantly: boolean): Leaf {
   const goal = goalOf(leaf);
   const x = instantly ? still(goal.x) : spring(leaf.x, goal.x, seconds);
@@ -47,22 +57,45 @@ function settle(leaf: Leaf, seconds: number, instantly: boolean): Leaf {
   return resting ? { ...leaf, x: still(goal.x), y: still(goal.y) } : { ...leaf, x, y };
 }
 
-function mountBook(canvas: HTMLCanvasElement): () => void {
-  const stage = createStage(canvas, { width: CLOSED_VIEW, height: PAGE.height * 1.2 });
-  const font = getComputedStyle(document.body).fontFamily;
+type Mount = { sheets: number; turned: number; art: Art; font: string; onTap: (side: number) => void };
 
-  const book = createBook(PAGE, { outside: coverTexture(font), inside: blankTexture() }, SHEETS);
-  const sheets = Array.from({ length: SHEETS }, (_, i) =>
-    createSheet(PAGE, pageTexture(i * 2, font), pageTexture(i * 2 + 1, font)));
+function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initiallyTurned, art, font, onTap }: Mount): Controller {
+  const stage = createStage(canvas, { width: CLOSED_VIEW, height: PAGE.height * 1.2 });
+  const blank = sideTexture(null, new Map(), font);
+  let cover = coverTexture(font, art.book.coverColor, art.book.year);
+  const book = createBook(PAGE, { outside: cover, inside: blank }, count);
+  const sheets = Array.from({ length: count }, () => createSheet(PAGE, blank, blank));
   stage.scene.add(book.group, ...sheets.map((sheet) => sheet.group));
 
-  /* 0 번은 표지다. 휘지 않고 판으로 돈다. */
   const edge = { x: PAGE.width, y: PAGE.height / 2 };
-  const leaves: Leaf[] = Array.from({ length: SHEETS + 1 }, () => ({
-    turned: false, grab: edge, x: still(edge.x), y: still(edge.y),
-  }));
+  /* 0 번은 표지다. 휘지 않고 판으로 돈다. 다시 그려도 펼쳐 둔 자리를 잃지 않는다. */
+  const leaves: Leaf[] = Array.from({ length: count + 1 }, (_, i) => {
+    const turned = i < initiallyTurned;
+    const at = turned ? mirror(edge) : edge;
+    return { turned, grab: edge, x: still(at.x), y: still(at.y) };
+  });
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let drag: Drag | null = null;
+  let current = art;
+  const painted = new Map<number, Texture>();
+
+  /** 펼친 곳 근처 장만 그림을 입히고 멀어진 장은 빈 종이로 돌린다. */
+  const paintAround = () => {
+    const open = leaves.filter((leaf) => leaf.turned).length;
+    sheets.forEach((sheet, i) => {
+      const near = Math.abs(i + 1 - open) <= PAINTED_AROUND;
+      const sides = [i * 2, i * 2 + 1];
+      sides.forEach((side) => {
+        if (near && !painted.has(side)) painted.set(side, sideTexture(current.pages[side] ?? null, current.images, font));
+        if (!near && painted.has(side)) {
+          painted.get(side)?.dispose();
+          painted.delete(side);
+        }
+      });
+      sheet.paint(painted.get(sides[0]) ?? blank, painted.get(sides[1]) ?? blank);
+    });
+  };
+  paintAround();
 
   const local = (event: PointerEvent): Point | null => {
     const point = stage.toTable(event.clientX, event.clientY);
@@ -71,12 +104,11 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
 
   /*
    * 어디를 잡든 그 높이의 바깥 가장자리를 잡은 것으로 친다. 가운데를 잡은 점을 그대로
-   * 손가락에 붙이면 그 바깥쪽 절반이 한 번에 뒤집혀 탁 접힌다. 손가락은 움직인 만큼만
-   * 가장자리를 끈다. 모서리 근처를 잡으면 가장자리 모서리가 따라와 대각선으로 말린다.
+   * 손가락에 붙이면 그 바깥쪽 절반이 한 번에 뒤집혀 탁 접힌다.
    */
   const onDown = (event: PointerEvent) => {
     const point = local(event);
-    if (!point || Math.abs(point.x) > PAGE.width || point.y < 0 || point.y > PAGE.height) return;
+    if (drag || !point || Math.abs(point.x) > PAGE.width || point.y < 0 || point.y > PAGE.height) return;
     const fromRight = point.x >= 0;
     const index = fromRight ? leaves.findIndex((leaf) => !leaf.turned) : leaves.map((leaf) => leaf.turned).lastIndexOf(true);
     if (index < 0) return;
@@ -99,17 +131,25 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
 
   const onUp = (event: PointerEvent) => {
     if (!drag) return;
-    const leaf = leaves[drag.index];
+    const { index, fromRight, start } = drag;
+    const leaf = leaves[index];
+    const point = local(event) ?? start;
+    /* 누르기만 했으면 넘기지 않고 그 면을 꾸미러 간다. 표지는 꾸미지 않는다. */
+    if (gap(point, start) < TAP_SLOP) {
+      leaves[index] = { ...leaf, x: still(goalOf(leaf).x), y: still(goalOf(leaf).y) };
+      drag = null;
+      if (index > 0) onTap(fromRight ? (index - 1) * 2 : (index - 1) * 2 + 1);
+      return;
+    }
     const progress = turnProgress(leaf.grab, fingerOf(leaf));
     const velocity = velocityOf(drag.samples, event.timeStamp);
-    const travelled = drag.fromRight ? progress : 1 - progress;
-    const flicked = travelled > FLICK_MIN && (drag.fromRight ? velocity < -FLICK_SPEED : velocity > FLICK_SPEED);
+    const travelled = fromRight ? progress : 1 - progress;
+    const flicked = travelled > FLICK_MIN && (fromRight ? velocity < -FLICK_SPEED : velocity > FLICK_SPEED);
     const committed = travelled > COMMIT_AT || flicked;
-    const turned = drag.fromRight ? committed : !committed;
-    /* 놓는 순간의 손 빠르기를 용수철에 넘겨야 던진 종이가 그 기세로 넘어간다. */
     const thrown = Math.max(-MAX_THROW, Math.min(MAX_THROW, velocity));
-    leaves[drag.index] = { ...leaf, turned, x: { ...leaf.x, velocity: thrown } };
+    leaves[index] = { ...leaf, turned: fromRight ? committed : !committed, x: { ...leaf.x, velocity: thrown } };
     drag = null;
+    paintAround();
   };
 
   canvas.addEventListener('pointerdown', onDown);
@@ -117,7 +157,6 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
 
-  /* 지난 프레임에 그린 손가락 자리. 그대로면 정점을 다시 계산하지 않는다. */
   const drawn: (Point | null)[] = leaves.map(() => null);
   let coverDrawn = -1;
 
@@ -127,14 +166,14 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
       if (drag?.index !== i) leaves[i] = settle(leaf, seconds, reduceMotion);
     });
 
-    const cover = turnProgress(leaves[0].grab, fingerOf(leaves[0]));
-    if (cover !== coverDrawn) {
-      coverDrawn = cover;
-      book.openCover(cover);
+    const opened = turnProgress(leaves[0].grab, fingerOf(leaves[0]));
+    if (opened !== coverDrawn) {
+      coverDrawn = opened;
+      book.openCover(opened);
       /* 닫힌 책은 표지가 가운데, 펼친 책은 책등이 가운데다. 여는 만큼 카메라가 따라간다. */
       stage.frame({
-        x: (PAGE.width / 2) * (1 - cover),
-        width: CLOSED_VIEW + (OPEN_VIEW - CLOSED_VIEW) * cover,
+        x: (PAGE.width / 2) * (1 - opened),
+        width: CLOSED_VIEW + (OPEN_VIEW - CLOSED_VIEW) * opened,
         height: PAGE.height * 1.2,
       });
       moved = true;
@@ -142,19 +181,17 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
 
     sheets.forEach((sheet, i) => {
       const { grab } = leaves[i + 1];
-      /* 놓은 뒤 돌아가는 길에도 책등에 묶여 있어야 한다. 끄는 동안만 막으면 돌아가는
-         직선 경로에서 종이가 늘어나 찢긴 것처럼 보인다. */
+      /* 놓은 뒤 돌아가는 길에도 책등에 묶여 있어야 찢긴 것처럼 보이지 않는다. */
       const finger = constrainToSpine(grab, clampToTurn(grab, fingerOf(leaves[i + 1])), PAGE);
       const last = drawn[i + 1];
       if (last && gap(last, finger) < 1e-6) return;
       drawn[i + 1] = finger;
       moved = true;
-
       const progress = turnProgress(grab, finger);
       const fold = gap(grab, finger) < MIN_FOLD ? null : foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
-      const right = book.restZ + (SHEETS - i) * LEAF_GAP;
+      const right = book.restZ + (count - i) * LEAF_GAP;
       const left = book.leftZ + (i + 1) * LEAF_GAP;
-      /* 가만히 놓인 종이끼리는 그림자를 주고받지 않는다. 0.0025 간격에서 서로 얼룩진다. */
+      /* 가만히 놓인 종이끼리는 그림자를 주고받지 않는다. 좁은 간격에서 서로 얼룩진다. */
       sheet.meshes.forEach((mesh) => {
         mesh.castShadow = progress > 0 && progress < 1;
       });
@@ -163,34 +200,74 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     return moved;
   });
 
-  return () => {
-    canvas.removeEventListener('pointerdown', onDown);
-    canvas.removeEventListener('pointermove', onMove);
-    canvas.removeEventListener('pointerup', onUp);
-    canvas.removeEventListener('pointercancel', onUp);
-    sheets.forEach((sheet) => sheet.dispose());
-    book.dispose();
-    stage.dispose();
+  return {
+    repaint: (next) => {
+      if (next.book.coverColor !== current.book.coverColor) {
+        const old = cover;
+        cover = coverTexture(font, next.book.coverColor, next.book.year);
+        book.setCover(cover);
+        old.dispose();
+      }
+      current = next;
+      painted.forEach((texture) => texture.dispose());
+      painted.clear();
+      paintAround();
+      stage.invalidate();
+    },
+    turned: () => leaves.filter((leaf) => leaf.turned).length,
+    dispose: () => {
+      canvas.removeEventListener('pointerdown', onDown);
+      canvas.removeEventListener('pointermove', onMove);
+      canvas.removeEventListener('pointerup', onUp);
+      canvas.removeEventListener('pointercancel', onUp);
+      painted.forEach((texture) => texture.dispose());
+      sheets.forEach((sheet) => sheet.dispose());
+      book.dispose();
+      blank.dispose();
+      stage.dispose();
+    },
   };
 }
 
-export default function Book() {
+type Props = Art & {
+  /** 이 책에서 펼쳐 둔 장 수. 페이지가 늘어 다시 그려도 그 자리로 돌아온다. */
+  turnedRef: { current: number };
+  onEdit: (side: number) => void;
+};
+
+export default function Book({ book, pages, images, turnedRef, onEdit }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const controller = useRef<Controller | null>(null);
+  const latest = useRef({ art: { book, pages, images }, onEdit });
+  latest.current = { art: { book, pages, images }, onEdit };
+  const sheets = sheetsFor(pages.length);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-    let unmount: (() => void) | undefined;
     let gone = false;
     /* 캔버스에 글씨를 그릴 때 폰트가 아직 없으면 시스템 폰트로 굳어 버린다. */
     void document.fonts.ready.then(() => {
-      if (!gone) unmount = mountBook(canvas);
+      if (gone) return;
+      controller.current = mountBook(canvas, {
+        sheets,
+        turned: Math.min(turnedRef.current, sheets + 1),
+        art: latest.current.art,
+        font: getComputedStyle(document.body).fontFamily,
+        onTap: (side) => latest.current.onEdit(side),
+      });
     });
     return () => {
       gone = true;
-      unmount?.();
+      if (controller.current) turnedRef.current = controller.current.turned();
+      controller.current?.dispose();
+      controller.current = null;
     };
-  }, []);
+  }, [book.id, sheets, turnedRef]);
+
+  useEffect(() => {
+    controller.current?.repaint({ book, pages, images });
+  }, [book, pages, images]);
 
   return (
     <canvas

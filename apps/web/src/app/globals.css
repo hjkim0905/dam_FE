@@ -103,3 +103,8 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* 다꾸 탭은 책이 화면을 다 쓴다. 테두리가 책 가장자리를 덮으면 종이가 잘려 보인다. */
+body[data-frame='off']::before {
+  display: none;
+}

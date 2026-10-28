@@ -3,7 +3,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { averageColor, pixelAt, rgbToHex } from './color';
+import { averageColor, pixelAt, rgbToHex, shade } from './color';
 
 const rgba = (...pixels: number[][]) => Uint8ClampedArray.from(pixels.flat());
 
@@ -55,4 +55,10 @@ test('pixelAt 은 아무것도 안 그려진 자리를 null 로 알린다', () =
   const blank = new Uint8ClampedArray(2 * 2 * 4);
 
   assert.equal(pixelAt(blank, 2, 0, 0), null);
+});
+
+test('shade 는 양수면 어둡게, 음수면 밝게 하고 0~255 를 넘지 않는다', () => {
+  assert.equal(shade('#808080', 0.5), '#404040');
+  assert.equal(shade('#808080', -0.5), '#c0c0c0');
+  assert.equal(shade('#f0f0f0', -1), '#ffffff');
 });

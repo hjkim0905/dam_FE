@@ -23,6 +23,8 @@ export type Sheet = {
   readonly group: Group;
   readonly meshes: readonly Mesh[];
   shape: (fold: Fold | null, base: number) => void;
+  /** 앞뒤 그림을 갈아 끼운다. 넘긴 자리에서 멀어진 장은 빈 종이로 바꿔 메모리를 돌려준다. */
+  paint: (front: Texture, back: Texture) => void;
   dispose: () => void;
 };
 
@@ -45,12 +47,11 @@ export function createSheet(page: Size, front: Texture, back: Texture): Sheet {
   const colors = new BufferAttribute(new Float32Array(rest.length), 3);
   geometry.setAttribute('color', colors);
 
-  const backTexture = mirrored(back);
+  let backTexture = mirrored(back);
   const paper = { roughness: 0.9, metalness: 0, vertexColors: true };
-  const meshes = [
-    new Mesh(geometry, new MeshStandardMaterial({ ...paper, map: front, side: FrontSide })),
-    new Mesh(geometry, new MeshStandardMaterial({ ...paper, map: backTexture, side: BackSide })),
-  ];
+  const frontMaterial = new MeshStandardMaterial({ ...paper, map: front, side: FrontSide });
+  const backMaterial = new MeshStandardMaterial({ ...paper, map: backTexture, side: BackSide });
+  const meshes = [new Mesh(geometry, frontMaterial), new Mesh(geometry, backMaterial)];
   meshes.forEach((mesh) => {
     mesh.castShadow = true;
     mesh.receiveShadow = true;
@@ -75,10 +76,20 @@ export function createSheet(page: Size, front: Texture, back: Texture): Sheet {
 
   shape(null, 0);
 
+  const paint: Sheet['paint'] = (nextFront, nextBack) => {
+    frontMaterial.map = nextFront;
+    backTexture.dispose();
+    backTexture = mirrored(nextBack);
+    backMaterial.map = backTexture;
+    frontMaterial.needsUpdate = true;
+    backMaterial.needsUpdate = true;
+  };
+
   return {
     group,
     meshes,
     shape,
+    paint,
     dispose: () => {
       geometry.dispose();
       backTexture.dispose();

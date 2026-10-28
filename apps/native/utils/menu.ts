@@ -2,7 +2,10 @@ import type { NativeStackHeaderItem } from "expo-router/build/react-navigation/n
 import { strings } from "../lib/i18n";
 import type { Locale } from "../lib/i18n";
 
-export type MenuAction = "me" | "room" | "privacy" | "terms" | "contact" | "signOut" | "deleteAccount";
+export type MenuAction =
+  | "me" | "room" | "privacy" | "terms" | "contact" | "signOut" | "deleteAccount"
+  /* 다꾸 탭의 + 버튼. 무엇을 더할지는 지금 화면을 아는 웹이 정한다. */
+  | "add";
 
 /**
  * 헤더 메뉴의 내용. 화면이 아니라 여기 있는 이유는 아래 규칙을 테스트로 묶어 두기 위해서다.
@@ -45,6 +48,18 @@ export function homeMenu(
           { ...opens(s.deleteAccount, "deleteAccount"), destructive: true },
         ],
       },
+    },
+  ];
+}
+
+/** 다꾸 탭 헤더의 + 버튼. 진짜 UIBarButtonItem 이라 iOS 26 이 리퀴드글래스로 그려 준다. */
+export function diaryButtons(select: (action: MenuAction) => void, locale: Locale): NativeStackHeaderItem[] {
+  return [
+    {
+      type: "button",
+      label: strings(locale).diaryAdd,
+      icon: { type: "sfSymbol", name: "plus" },
+      onPress: () => select("add"),
     },
   ];
 }

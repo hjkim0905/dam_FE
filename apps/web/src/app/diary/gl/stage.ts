@@ -26,6 +26,8 @@ export type Stage = {
   frame: (view: { x: number; width: number; height: number }) => void;
   /** frame 이 false 를 돌려주면 그 프레임은 그리지 않는다. 멈춘 책을 매번 다시 그릴 이유가 없다. */
   run: (frame: (seconds: number) => boolean) => void;
+  /** 움직임 없이 그림만 바뀌었을 때 다음 프레임을 한 번 그리게 한다. */
+  invalidate: () => void;
   dispose: () => void;
 };
 
@@ -105,6 +107,9 @@ export function createStage(
     pick: (clientX, clientY, targets) => {
       pointer(clientX, clientY);
       return raycaster.intersectObjects(targets, false);
+    },
+    invalidate: () => {
+      dirty = true;
     },
     frame: (next) => {
       framed = next;

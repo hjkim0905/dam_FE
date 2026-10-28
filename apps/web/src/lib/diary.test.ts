@@ -5,12 +5,15 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
+  appendPage,
   bringToFront,
   clampPlacement,
   dateLabel,
+  dropItem,
   shelfYears,
   twoFingerTransform,
   unplacedPhotos,
+  upsertItem,
   type Placement,
 } from './diary';
 
@@ -76,4 +79,32 @@ test('shelfYears 는 올해 책이 아직 없어도 올해 자리를 맨 앞에 
   assert.deepEqual(shelfYears([2025], 2026), [2026, 2025]);
   assert.deepEqual(shelfYears([2026, 2024], 2026), [2026, 2024]);
   assert.deepEqual(shelfYears([], 2026), [2026]);
+});
+
+const pages = {
+  book: { id: 1 },
+  pages: [
+    { id: 10, position: 0, items: [{ id: 1, layer: 0 }, { id: 2, layer: 1 }] },
+    { id: 11, position: 1, items: [] },
+  ],
+};
+
+test('upsertItem 은 그 페이지의 같은 것을 갈아 끼우고 없으면 붙인다', () => {
+  const replaced = upsertItem(pages, 10, { id: 2, layer: 9 });
+  assert.equal(replaced.pages[0].items.find((item) => item.id === 2)?.layer, 9);
+  assert.equal(pages.pages[0].items[1].layer, 1);
+  const added = upsertItem(pages, 11, { id: 3, layer: 0 });
+  assert.deepEqual(added.pages[1].items.map((item) => item.id), [3]);
+});
+
+test('dropItem 은 어느 페이지에 있든 그것만 뗀다', () => {
+  const next = dropItem(pages, 1);
+  assert.deepEqual(next.pages[0].items.map((item) => item.id), [2]);
+  assert.equal(pages.pages[0].items.length, 2);
+});
+
+test('appendPage 는 맨 뒤에 새 페이지를 붙인다', () => {
+  const next = appendPage(pages, { id: 12, position: 2, items: [] as { id: number; layer: number }[] });
+  assert.deepEqual(next.pages.map((page) => page.id), [10, 11, 12]);
+  assert.equal(pages.pages.length, 2);
 });

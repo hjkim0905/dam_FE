@@ -4,7 +4,7 @@
  */
 import assert from "node:assert/strict";
 import test from "node:test";
-import { homeMenu } from "./menu";
+import { diaryButtons, homeMenu } from "./menu";
 
 type Any = Record<string, unknown>;
 
@@ -70,4 +70,11 @@ test("homeMenu 는 고른 언어로 항목을 붙인다", () => {
 
   assert.ok(labelsOf("ko").includes("회원탈퇴"));
   assert.ok(labelsOf("en").includes("Delete account"));
+});
+
+test('diaryButtons 의 + 는 눌렸다는 것만 add 로 알린다', () => {
+  const pressed: string[] = [];
+  const [plus] = diaryButtons((action) => pressed.push(action), "ko") as unknown as { onPress: () => void }[];
+  plus.onPress();
+  assert.deepEqual(pressed, ["add"]);
 });

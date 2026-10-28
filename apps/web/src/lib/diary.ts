@@ -93,3 +93,38 @@ export function dateLabel(date: string | null): string {
 export function shelfYears(made: readonly number[], thisYear: number): readonly number[] {
   return [...new Set([thisYear, ...made])].sort((a, b) => b - a);
 }
+
+type WithItems<I> = { readonly id: number; readonly items: readonly I[] };
+type Book<P> = { readonly pages: readonly P[] };
+
+/** 서버가 돌려준 것으로 캐시의 그것을 갈아 끼운다. 그 페이지에 없으면 맨 뒤에 붙인다. */
+export function upsertItem<I extends { readonly id: number }, P extends WithItems<I>, B extends Book<P>>(
+  book: B,
+  pageId: number,
+  item: I
+): B {
+  return {
+    ...book,
+    pages: book.pages.map((page) => {
+      if (page.id !== pageId) return page;
+      const exists = page.items.some((candidate) => candidate.id === item.id);
+      return {
+        ...page,
+        items: exists ? page.items.map((candidate) => (candidate.id === item.id ? item : candidate)) : [...page.items, item],
+      };
+    }),
+  };
+}
+
+export function dropItem<I extends { readonly id: number }, P extends WithItems<I>, B extends Book<P>>(book: B, id: number): B {
+  return {
+    ...book,
+    pages: book.pages.map((page) => (page.items.some((item) => item.id === id)
+      ? { ...page, items: page.items.filter((item) => item.id !== id) }
+      : page)),
+  };
+}
+
+export function appendPage<P, B extends Book<P>>(book: B, page: P): B {
+  return { ...book, pages: [...book.pages, page] };
+}

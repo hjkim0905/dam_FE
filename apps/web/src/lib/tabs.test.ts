@@ -21,3 +21,8 @@ test('tabRootFor는 하위 화면을 자기 탭의 첫 화면으로 되돌린다
 test('tabRootFor는 이름만 겹치는 경로를 다른 탭으로 보내지 않는다', () => {
   assert.equal(tabRootFor('/calendars'), '/');
 });
+
+test('tabRootFor는 다꾸 탭의 첫 화면을 그대로 둔다', () => {
+  assert.equal(tabRootFor('/diary'), null);
+  assert.equal(tabRootFor('/diary/cover'), '/diary');
+});

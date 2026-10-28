@@ -47,6 +47,7 @@ const KO = {
   today: "오늘",
   calendar: "달력",
   flow: "흐름",
+  diary: "다꾸",
   unnamed: "이름 없음",
   checkConnection: "연결을 확인해 주세요",
 };
@@ -85,6 +86,7 @@ const EN: typeof KO = {
   today: "Today",
   calendar: "Calendar",
   flow: "Flow",
+  diary: "Diary",
   unnamed: "No name",
   checkConnection: "Check your connection",
 };
@@ -122,6 +124,7 @@ const JA: typeof KO = {
   today: "今日",
   calendar: "カレンダー",
   flow: "流れ",
+  diary: "日記",
   unnamed: "名前なし",
   checkConnection: "接続を確かめてください",
 };

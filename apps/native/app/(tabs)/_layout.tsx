@@ -21,6 +21,10 @@ export default function TabLayout() {
         />
         <NativeTabs.Trigger.Label>{s.flow}</NativeTabs.Trigger.Label>
       </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="diary">
+        <NativeTabs.Trigger.Icon sf={{ default: "book", selected: "book.fill" }} />
+        <NativeTabs.Trigger.Label>{s.diary}</NativeTabs.Trigger.Label>
+      </NativeTabs.Trigger>
     </NativeTabs>
   );
 }

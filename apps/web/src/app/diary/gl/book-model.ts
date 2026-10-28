@@ -82,12 +82,14 @@ export type Book = {
   openCover: (progress: number) => void;
   /** 오른쪽 묶음 위, 넘길 낱장들이 쌓이기 시작하는 높이. */
   readonly restZ: number;
+  /** 열린 표지 안쪽 면의 높이. 넘긴 낱장이 여기서부터 쌓인다. */
+  readonly leftZ: number;
   dispose: () => void;
 };
 
 /**
- * 표지는 휘지 않는다. 책등을 축으로 통째로 돌고, 다 열리면 왼쪽 묶음 밑으로 들어간다.
- * 왼쪽 묶음은 표지가 열리는 만큼 나타난다. 닫힌 책 왼쪽에 종이가 떠 있으면 안 되니까.
+ * 표지는 휘지 않는다. 책등을 축으로 통째로 돌아 왼쪽에 눕는다. 첫 장을 펼친 책의
+ * 왼쪽은 표지 안쪽뿐이라 왼쪽에는 속지 묶음을 두지 않는다. 넘긴 낱장이 그 위에 쌓인다.
  */
 export function createBook(page: Size, cover: { outside: Texture; inside: Texture }, leaves: number): Book {
   const group = new Group();
@@ -100,13 +102,12 @@ export function createBook(page: Size, cover: { outside: Texture; inside: Textur
   backBoard.position.z = -BOARD_THICKNESS / 2;
 
   const right = pageBlock(page, true);
-  const left = pageBlock(page, false);
 
   const front = board(page, cover);
   const hinge = new Group();
   hinge.add(front);
 
-  group.add(desk, backBoard, right, left, hinge);
+  group.add(desk, backBoard, right, hinge);
 
   const closedZ = BLOCK_THICKNESS + (leaves + 1) * LEAF_GAP + BOARD_THICKNESS / 2;
   const openZ = -BOARD_THICKNESS / 2;
@@ -114,9 +115,6 @@ export function createBook(page: Size, cover: { outside: Texture; inside: Textur
   const openCover: Book['openCover'] = (progress) => {
     hinge.rotation.y = -Math.PI * progress;
     hinge.position.z = closedZ + (openZ - closedZ) * progress + Math.sin(Math.PI * progress) * 0.12;
-    left.visible = progress > 0.02;
-    left.scale.z = Math.max(0.001, progress);
-    left.position.z = (BLOCK_THICKNESS * left.scale.z) / 2;
   };
   openCover(0);
 
@@ -124,6 +122,7 @@ export function createBook(page: Size, cover: { outside: Texture; inside: Textur
     group,
     openCover,
     restZ: BLOCK_THICKNESS,
+    leftZ: 0,
     dispose: () => {
       group.traverse((object) => {
         if (!(object instanceof Mesh)) return;

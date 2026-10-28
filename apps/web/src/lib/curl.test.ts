@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bend, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
+import { bend, clampToTurn, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
 
 const near = (actual: readonly number[], expected: readonly number[], epsilon = 1e-9) => {
   actual.forEach((value, i) => {
@@ -111,4 +111,11 @@ test('curlAt 은 잡은 반대쪽을 붙여 둔다', () => {
 test('curlAt 은 각도가 0 이면 아무것도 들지 않는다', () => {
   const fold = curlAt({ x: 4, y: 2 }, { x: 1, y: 0 }, 0.5, 0);
   near(bend(4, 2, fold), [4, 2, 0]);
+});
+
+test('clampToTurn 은 가장자리 바깥과 거울 자리 너머로 손가락을 내보내지 않는다', () => {
+  const grab = { x: 1, y: 0.5 };
+  assert.deepEqual(clampToTurn(grab, { x: 1.02, y: 0.5 }), { x: 1, y: 0.5 });
+  assert.deepEqual(clampToTurn(grab, { x: -1.03, y: 0.4 }), { x: -1, y: 0.4 });
+  assert.deepEqual(clampToTurn(grab, { x: 0.2, y: 0.7 }), { x: 0.2, y: 0.7 });
 });

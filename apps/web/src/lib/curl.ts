@@ -111,3 +111,11 @@ export function curlAt(grab: Point, direction: Point, radius: number, sweep: num
     radius,
   };
 }
+
+/**
+ * 용수철은 목표를 살짝 지나친다. 가장자리 바깥으로 지나치면 접힘이 페이지 전체를
+ * 뒤집고, 거울 자리를 지나치면 페이지가 책등 너머로 밀려난다. 그리기 전에만 붙잡는다.
+ */
+export function clampToTurn(grab: Point, finger: Point): Point {
+  return { x: Math.min(grab.x, Math.max(-grab.x, finger.x)), y: finger.y };
+}

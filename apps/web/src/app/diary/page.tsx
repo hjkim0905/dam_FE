@@ -24,7 +24,7 @@ export default function DiaryPage() {
       css={css`
         display: flex;
         flex-direction: column;
-        height: 100dvh;
+        height: 100%;
         background: var(--color-background);
       `}
     >
@@ -33,7 +33,7 @@ export default function DiaryPage() {
           display: flex;
           justify-content: center;
           gap: 0.5rem;
-          padding: 1.5rem var(--space-edge) 0;
+          padding: 2.25rem var(--space-edge) 0;
         `}
       >
         {MODES.map(({ key, label }) => (
@@ -61,10 +61,12 @@ export default function DiaryPage() {
           </button>
         ))}
       </nav>
+      {/* 양모 테두리는 모든 화면 위를 덮는다. 책이 그 밑으로 들어가지 않게 안쪽에만 그린다. */}
       <div
         css={css`
           flex: 1;
           min-height: 0;
+          padding: 1rem 1.75rem 1.75rem;
         `}
       >
         {mode === 'book' ? <Book /> : <Peel />}

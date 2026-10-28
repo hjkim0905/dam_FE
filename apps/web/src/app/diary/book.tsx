@@ -3,8 +3,8 @@
 
 import { css } from '@emotion/react';
 import { useEffect, useRef } from 'react';
-import { constrainToSpine, foldFromDrag, turnProgress, type Point } from '@/lib/curl';
-import { approach } from '@/lib/motion';
+import { clampToTurn, constrainToSpine, foldFromDrag, turnProgress, type Point } from '@/lib/curl';
+import { spring, type Spring } from '@/lib/motion';
 import { createBook, LEAF_GAP } from './gl/book-model';
 import { createSheet } from './gl/page-curl';
 import { blankTexture, coverTexture, pageTexture } from './gl/spike-art';
@@ -13,34 +13,34 @@ import { createStage } from './gl/stage';
 const PAGE = { width: 1, height: 1.4 };
 const SHEETS = 4;
 const CURL_RADIUS = PAGE.width * 0.16;
-const SETTLE_RATE = 12;
-/* 거의 제자리에 왔으면 붙인다. 지수 감쇠는 끝이 길어서, 남은 작은 접힘이 겹친 종이와
-   깜빡이며 지지직거렸다. */
-const SNAP = 0.003;
+/* 절반은 넘겨야 넘어간다. 덜 끌고 놓으면 펴지며 돌아온다. */
+const COMMIT_AT = 0.5;
+/* 이보다 빠르게 튕기면 절반이 안 돼도 넘긴다. 단위는 페이지 폭 / 초. */
+const FLICK_SPEED = 2.2;
+const SETTLED = 1e-4;
 /* 이보다 덜 끈 접힘은 원통이 너무 작아 종이 두께 안에서 떨기만 한다. */
 const MIN_FOLD = 0.004;
 const CLOSED_VIEW = PAGE.width * 1.3;
 const OPEN_VIEW = PAGE.width * 2.25;
-/* 이만큼 넘겼으면 손을 떼도 끝까지 넘어간다. */
-const COMMIT_AT = 0.3;
-const TAP_SLOP = 0.02;
-/* 책등에 바짝 붙은 곳을 잡으면 조금만 움직여도 다 넘어가 버린다. */
-const MIN_GRAB_X = PAGE.width * 0.2;
 
-type Leaf = { turned: boolean; grab: Point; finger: Point };
-type Drag = { index: number; fromRight: boolean; start: Point };
+type Leaf = { turned: boolean; grab: Point; x: Spring; y: Spring };
+type Drag = { index: number; fromRight: boolean; start: Point; from: Point; last: Point; time: number; velocity: number };
 
+const still = (value: number): Spring => ({ value, velocity: 0 });
 const mirror = ({ x, y }: Point): Point => ({ x: -x, y });
+const fingerOf = (leaf: Leaf): Point => ({ x: leaf.x.value, y: leaf.y.value });
 const goalOf = (leaf: Leaf): Point => (leaf.turned ? mirror(leaf.grab) : leaf.grab);
 const gap = (a: Point, b: Point): number => Math.hypot(a.x - b.x, a.y - b.y);
 
-function settle(leaf: Leaf, seconds: number, instantly: boolean): Point {
+
+/** 놓은 종이는 용수철처럼 펴지며 제자리로 간다. 다 왔으면 멈춰 세워 더 그리지 않는다. */
+function settle(leaf: Leaf, seconds: number, instantly: boolean): Leaf {
   const goal = goalOf(leaf);
-  if (instantly || gap(leaf.finger, goal) < SNAP) return goal;
-  return {
-    x: approach(leaf.finger.x, goal.x, seconds, SETTLE_RATE),
-    y: approach(leaf.finger.y, goal.y, seconds, SETTLE_RATE),
-  };
+  const x = instantly ? still(goal.x) : spring(leaf.x, goal.x, seconds);
+  const y = instantly ? still(goal.y) : spring(leaf.y, goal.y, seconds);
+  const resting = Math.abs(x.value - goal.x) + Math.abs(y.value - goal.y) < SETTLED
+    && Math.abs(x.velocity) + Math.abs(y.velocity) < SETTLED * 10;
+  return resting ? { ...leaf, x: still(goal.x), y: still(goal.y) } : { ...leaf, x, y };
 }
 
 function mountBook(canvas: HTMLCanvasElement): () => void {
@@ -53,8 +53,9 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
   stage.scene.add(book.group, ...sheets.map((sheet) => sheet.group));
 
   /* 0 번은 표지다. 휘지 않고 판으로 돈다. */
+  const edge = { x: PAGE.width, y: PAGE.height / 2 };
   const leaves: Leaf[] = Array.from({ length: SHEETS + 1 }, () => ({
-    turned: false, grab: { x: PAGE.width, y: PAGE.height / 2 }, finger: { x: PAGE.width, y: PAGE.height / 2 },
+    turned: false, grab: edge, x: still(edge.x), y: still(edge.y),
   }));
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   let drag: Drag | null = null;
@@ -64,6 +65,11 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     return point ? { x: point.x, y: point.y + PAGE.height / 2 } : null;
   };
 
+  /*
+   * 어디를 잡든 그 높이의 바깥 가장자리를 잡은 것으로 친다. 가운데를 잡은 점을 그대로
+   * 손가락에 붙이면 그 바깥쪽 절반이 한 번에 뒤집혀 탁 접힌다. 손가락은 움직인 만큼만
+   * 가장자리를 끈다. 모서리 근처를 잡으면 가장자리 모서리가 따라와 대각선으로 말린다.
+   */
   const onDown = (event: PointerEvent) => {
     const point = local(event);
     if (!point || Math.abs(point.x) > PAGE.width || point.y < 0 || point.y > PAGE.height) return;
@@ -71,31 +77,34 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     const index = fromRight ? leaves.findIndex((leaf) => !leaf.turned) : leaves.map((leaf) => leaf.turned).lastIndexOf(true);
     if (index < 0) return;
     canvas.setPointerCapture(event.pointerId);
-    const onPage = fromRight ? point : mirror(point);
-    const grab = { x: Math.max(MIN_GRAB_X, onPage.x), y: onPage.y };
-    /* 누르는 순간에는 아무것도 움직이지 않는다. 손가락을 grab 의 제자리에 둬야 책등 근처를
-       눌러도 페이지가 들썩이지 않는다. */
-    leaves[index] = { ...leaves[index], grab, finger: fromRight ? grab : mirror(grab) };
-    drag = { index, fromRight, start: point };
+    const grab = { x: PAGE.width, y: point.y };
+    const from = fromRight ? grab : mirror(grab);
+    leaves[index] = { ...leaves[index], grab, x: still(from.x), y: still(from.y) };
+    drag = { index, fromRight, start: point, from, last: point, time: event.timeStamp, velocity: 0 };
   };
 
   const onMove = (event: PointerEvent) => {
     const point = local(event);
     if (!drag || !point) return;
     const leaf = leaves[drag.index];
-    const finger = drag.index === 0 ? point : constrainToSpine(leaf.grab, point, PAGE);
-    leaves[drag.index] = { ...leaf, finger };
+    const pulled = { x: drag.from.x + point.x - drag.start.x, y: drag.from.y + point.y - drag.start.y };
+    const finger = drag.index === 0 ? pulled : constrainToSpine(leaf.grab, pulled, PAGE);
+    const seconds = Math.max(1e-3, (event.timeStamp - drag.time) / 1000);
+    /* 마지막 몇 프레임의 속도만 남긴다. 처음부터 평균을 내면 튕긴 것을 못 알아챈다. */
+    const velocity = drag.velocity * 0.6 + ((point.x - drag.last.x) / seconds) * 0.4;
+    drag = { ...drag, last: point, time: event.timeStamp, velocity };
+    leaves[drag.index] = { ...leaf, x: still(finger.x), y: still(finger.y) };
   };
 
-  const onUp = (event: PointerEvent) => {
+  const onUp = () => {
     if (!drag) return;
     const leaf = leaves[drag.index];
-    const point = local(event) ?? drag.start;
-    /* 탭으로는 넘기지 않는다. 사진이나 스티커를 누르려던 손이 책장을 넘겨 버리면 안 된다. */
-    const tapped = Math.hypot(point.x - drag.start.x, point.y - drag.start.y) < TAP_SLOP;
-    const progress = turnProgress(leaf.grab, leaf.finger);
-    const turned = tapped ? leaf.turned : progress > (drag.fromRight ? COMMIT_AT : 1 - COMMIT_AT);
-    leaves[drag.index] = { ...leaf, turned };
+    const progress = turnProgress(leaf.grab, fingerOf(leaf));
+    const flicked = drag.fromRight ? drag.velocity < -FLICK_SPEED : drag.velocity > FLICK_SPEED;
+    const pastHalf = drag.fromRight ? progress > COMMIT_AT : progress > 1 - COMMIT_AT;
+    const turned = drag.fromRight ? pastHalf || flicked : pastHalf && !flicked;
+    /* 놓는 순간의 손 빠르기를 용수철에 넘겨야 던진 종이가 그 기세로 넘어간다. */
+    leaves[drag.index] = { ...leaf, turned, x: { ...leaf.x, velocity: drag.velocity } };
     drag = null;
   };
 
@@ -111,10 +120,10 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
   stage.run((seconds) => {
     let moved = false;
     leaves.forEach((leaf, i) => {
-      if (drag?.index !== i) leaves[i] = { ...leaf, finger: settle(leaf, seconds, reduceMotion) };
+      if (drag?.index !== i) leaves[i] = settle(leaf, seconds, reduceMotion);
     });
 
-    const cover = turnProgress(leaves[0].grab, leaves[0].finger);
+    const cover = turnProgress(leaves[0].grab, fingerOf(leaves[0]));
     if (cover !== coverDrawn) {
       coverDrawn = cover;
       book.openCover(cover);
@@ -128,7 +137,8 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
     }
 
     sheets.forEach((sheet, i) => {
-      const { grab, finger } = leaves[i + 1];
+      const { grab } = leaves[i + 1];
+      const finger = clampToTurn(grab, fingerOf(leaves[i + 1]));
       const last = drawn[i + 1];
       if (last && gap(last, finger) < 1e-6) return;
       drawn[i + 1] = finger;
@@ -137,7 +147,7 @@ function mountBook(canvas: HTMLCanvasElement): () => void {
       const progress = turnProgress(grab, finger);
       const fold = gap(grab, finger) < MIN_FOLD ? null : foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
       const right = book.restZ + (SHEETS - i) * LEAF_GAP;
-      const left = book.restZ + (i + 1) * LEAF_GAP;
+      const left = book.leftZ + (i + 1) * LEAF_GAP;
       /* 가만히 놓인 종이끼리는 그림자를 주고받지 않는다. 0.0025 간격에서 서로 얼룩진다. */
       sheet.meshes.forEach((mesh) => {
         mesh.castShadow = progress > 0 && progress < 1;

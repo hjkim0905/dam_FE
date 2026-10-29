@@ -3,10 +3,12 @@
 
 import { css } from '@emotion/react';
 import dynamic from 'next/dynamic';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { DiaryPage, NewItem } from '@/lib/api/diary';
 import { subscribeToNative } from '@/lib/bridge';
 import { unplacedPhotos } from '@/lib/diary';
+import { SHELF } from '@/lib/query-keys';
 import useEntries from '../use-entries';
 import useFocusReload from '../use-focus-reload';
 import Editor from './editor';
@@ -75,7 +77,9 @@ export default function DiaryScreen() {
   const conflict = useCallback(() => setNotice('그사이 다른 사람이 먼저 고쳤어요'), []);
   const { diary, place, remove, add, newPage, recolor } = useDiary(diaryId, conflict);
   const images = useImages(diary?.pages ?? null);
-  useFocusReload();
+  const client = useQueryClient();
+  /* 상대가 그사이 붙인 것도 보이게, 책장과 펼친 책을 함께 다시 읽는다. */
+  useFocusReload(useCallback(() => void client.invalidateQueries({ queryKey: SHELF }), [client]));
 
   /* 양모 테두리는 다른 탭의 것이다. 이 탭은 책이 화면을 다 쓴다. */
   useEffect(() => {

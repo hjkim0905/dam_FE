@@ -195,7 +195,7 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
       sheet.meshes.forEach((mesh) => {
         mesh.castShadow = progress > 0 && progress < 1;
       });
-      sheet.shape(fold, right + (left - right) * progress);
+      sheet.shape(fold, right, left);
     });
     return moved;
   });

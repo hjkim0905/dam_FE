@@ -43,6 +43,17 @@ export function bend(px: number, py: number, fold: Fold): Point3 {
 }
 
 /**
+ * 그 점이 왼쪽 더미로 얼마나 넘어갔는지. 0 은 아직 오른쪽에 누운 자리, 1 은 원통을 다 돌아
+ * 왼쪽에 누운 자리다. 종이 전체를 한 높이로 옮기면 덜 넘긴 쪽이 아래 묶음 속으로 가라앉는다.
+ */
+export function turnedShare(px: number, py: number, fold: Fold): number {
+  const s = (px - fold.x) * Math.cos(fold.angle) + (py - fold.y) * Math.sin(fold.angle);
+  if (s <= 0) return 0;
+  const arc = Math.PI * fold.radius;
+  return arc <= 0 || s >= arc ? 1 : s / arc;
+}
+
+/**
  * 원통에 감긴 길이 a 의 점이 접힘선에서 얼마나 떨어져 보이는지(위에서 본 거리)를 뺀 값.
  * a - R sin(a/R) 이 끈 거리와 같아지는 a 를 찾는다. 0 에서 기울기가 0 이라 뉴턴법은
  * 처음 몇 픽셀을 끌 때 흔들려서 이분법을 쓴다.

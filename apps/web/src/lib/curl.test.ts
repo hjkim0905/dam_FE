@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bend, clampToTurn, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
+import { bend, clampToTurn, turnedShare, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
 
 const near = (actual: readonly number[], expected: readonly number[], epsilon = 1e-9) => {
   actual.forEach((value, i) => {
@@ -138,4 +138,14 @@ test('foldFromDrag 는 원통 반 바퀴를 넘겨 끌어도 이어진다', () =
   const over = foldFromDrag(grab, { x: 10 - Math.PI * radius * 1.001, y: 3 }, radius);
   assert.ok(just && over);
   assert.ok(Math.abs(just.x - over.x) < 0.01);
+});
+
+test('turnedShare 는 접히지 않은 쪽 0, 원통을 다 돈 쪽 1, 감기는 중이면 감긴 만큼이다', () => {
+  assert.equal(turnedShare(4, 2, upright), 0);
+  assert.equal(turnedShare(5 + Math.PI, 2, upright), 1);
+  near([turnedShare(5 + Math.PI / 2, 2, upright)], [0.5]);
+});
+
+test('turnedShare 는 반지름이 0 인 다 넘긴 장을 왼쪽에 둔다', () => {
+  assert.equal(turnedShare(6, 2, { ...upright, radius: 0 }), 1);
 });

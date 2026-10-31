@@ -140,13 +140,21 @@ export default function DiaryScreen() {
   };
 
   return (
-    <main css={css`position: relative; height: 100%; background: var(--color-background);`}>
+    <main
+      css={css`
+        /* 앱의 헤더는 투명하게 위를 덮고 터치도 가져간다. 그 아래에만 누를 것을 둔다. */
+        --native-header: 2.75rem;
+        position: relative;
+        height: 100%;
+        background: var(--color-background);
+      `}
+    >
       {view.kind === 'shelf' && books && <Shelf books={books} thisYear={thisYear} onOpen={(chosen) => void open(chosen)} />}
 
       {view.kind === 'book' && diary && font && (
         <>
           <Book book={diary.book} pages={diary.pages} images={images} turnedRef={turnedFor(view.id)} onEdit={(side) => void edit(side)} />
-          <button type="button" css={[pill, css`position: absolute; top: 0.75rem; left: 1rem;`]} onClick={() => setView({ kind: 'shelf' })}>
+          <button type="button" css={[pill, css`position: absolute; top: calc(var(--native-header) + 0.75rem); left: 1rem;`]} onClick={() => setView({ kind: 'shelf' })}>
             책장
           </button>
           <div role="radiogroup" aria-label="표지 색" css={css`position: absolute; bottom: 1.5rem; inset-inline: 0; display: flex; justify-content: center; gap: 0.75rem;`}>
@@ -196,7 +204,7 @@ export default function DiaryScreen() {
       )}
 
       {notice && (
-        <p role="status" css={css`position: absolute; top: 4rem; inset-inline: 0; text-align: center; color: var(--color-alert);`}>
+        <p role="status" css={css`position: absolute; top: calc(var(--native-header) + 3.5rem); inset-inline: 0; text-align: center; color: var(--color-alert);`}>
           {notice}
         </p>
       )}

@@ -154,13 +154,18 @@ export default function Editor({ page, images, font, onPlace, onRemove, onDone, 
       onPointerMove={move}
       onPointerUp={end}
       onPointerCancel={end}
-      onPointerDown={() => setSelected(null)}
+      onPointerDown={(event) => {
+        /* 작은 스티커 위에 두 손가락을 다 올리기는 어렵다. 하나로 잡았으면 둘째는 아무 데나 닿아도 된다. */
+        const held = gesture.current && items.find((item) => item.id === gesture.current?.id);
+        if (held) begin(held, event);
+        else setSelected(null);
+      }}
       css={css`
         position: absolute;
         inset: 0;
         display: grid;
         place-items: center;
-        padding: 3.5rem 1rem 1.5rem;
+        padding: calc(var(--native-header) + 3.5rem) 1rem 1.5rem;
         background: var(--color-background);
         touch-action: none;
       `}
@@ -171,7 +176,7 @@ export default function Editor({ page, images, font, onPlace, onRemove, onDone, 
         onPointerDown={(event) => event.stopPropagation()}
         css={css`
           position: absolute;
-          top: 0.75rem;
+          top: calc(var(--native-header) + 0.75rem);
           left: 1rem;
           padding: 0.5rem 1.25rem;
           border: 0;

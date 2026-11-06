@@ -19,8 +19,9 @@ import { storeUrl } from "../lib/store";
 import { decodeCommand } from "../utils/bridge";
 import { insetVariablesScript } from "../utils/insets";
 import { EVENT, forget, track } from "../lib/analytics";
+import { cutout } from "../lib/cutout";
 import { clearToken, loadToken } from "../lib/session";
-import { holdWeb } from "../utils/web-channel";
+import { holdWeb, setDiaryBack } from "../utils/web-channel";
 import type { HapticStyle } from "../utils/bridge";
 
 const WebView = WebViewBase as unknown as ForwardRefExoticComponent<
@@ -70,6 +71,18 @@ export default function AppWebView({ path }: { path: string }) {
     if (command.type === "OPEN_STORE") {
       const url = storeUrl(Constants.expoConfig?.extra?.appStoreId ?? "");
       if (url) Linking.openURL(url);
+    }
+    if (command.type === "HEADER") setDiaryBack(command.back);
+    if (command.type === "CUTOUT") {
+      const reply = (payload: object) =>
+        webViewRef.current?.postMessage(JSON.stringify({ type: "CUTOUT", payload: { id: command.id, ...payload } }));
+      void cutout(command.url, command.point)
+        .then((image) => reply({ image }))
+        .catch((error: unknown) => {
+          // 시뮬레이터에서는 Vision 이 "Could not create inference context" 로 실패한다. 실기기에서만 딴다.
+          console.warn("누끼를 따지 못했다", error);
+          reply({ image: null });
+        });
     }
     if (command.type === "SIGNED_OUT") {
       forget();

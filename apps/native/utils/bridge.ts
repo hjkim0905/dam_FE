@@ -5,6 +5,9 @@ export type BridgeMessage = {
 
 export const HAPTIC_STYLES = ["selection", "light", "medium"] as const;
 
+/* 헤더 버튼은 좁다. 이보다 긴 이름은 잘리거나 + 를 밀어낸다. */
+const MAX_BACK_LABEL = 6;
+
 export type HapticStyle = (typeof HAPTIC_STYLES)[number];
 
 export type BridgeCommand =
@@ -14,7 +17,9 @@ export type BridgeCommand =
   | { type: "OPEN_URL"; url: string }
   | { type: "SIGNED_OUT" }
   | { type: "OPEN_STORE" }
-  | { type: "ASK_REVIEW" };
+  | { type: "ASK_REVIEW" }
+  | { type: "CUTOUT"; id: string; url: string; point?: { x: number; y: number } }
+  | { type: "HEADER"; back: string | null };
 
 export function parseBridgeMessage(raw: string): BridgeMessage | null {
   try {
@@ -77,6 +82,27 @@ export function decodeCommand(raw: string): BridgeCommand | null {
       if (typeof url !== "string" || !url.startsWith("https://")) return null;
 
       return { type: "OPEN_URL", url };
+    }
+
+    // 누끼는 iOS Vision 만 딴다. 받아 올 사진도 https 로만 받는다.
+    case "CUTOUT": {
+      const id = fieldOf(message.payload, "id");
+      const url = fieldOf(message.payload, "url");
+      if (typeof id !== "string" || typeof url !== "string" || !url.startsWith("https://")) return null;
+      const x = fieldOf(message.payload, "x");
+      const y = fieldOf(message.payload, "y");
+      if (x === undefined && y === undefined) return { type: "CUTOUT", id, url };
+      const inside = (value: unknown) => typeof value === "number" && value >= 0 && value <= 1;
+      if (!inside(x) || !inside(y)) return null;
+      return { type: "CUTOUT", id, url, point: { x: x as number, y: y as number } };
+    }
+
+    // 헤더 왼쪽 버튼. 어디로 돌아갈지는 웹만 알아서, 이름만 받아 그린다. null 이면 숨긴다.
+    case "HEADER": {
+      const back = fieldOf(message.payload, "back");
+      if (back === null) return { type: "HEADER", back: null };
+      if (typeof back !== "string" || back.length === 0 || back.length > MAX_BACK_LABEL) return null;
+      return { type: "HEADER", back };
     }
 
     default:

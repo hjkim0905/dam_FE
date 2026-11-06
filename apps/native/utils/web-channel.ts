@@ -17,3 +17,22 @@ export function holdWeb(post: Post | null): void {
 export function sendToWeb(action: MenuAction): void {
   current?.(JSON.stringify({ type: "MENU", payload: { action } }));
 }
+
+/*
+ * 다꾸 탭 헤더의 왼쪽 버튼 이름. 웹이 화면을 바꿀 때마다 알려 준다. 헤더는 웹뷰 바깥이라
+ * 여기 두고, 헤더가 구독해서 다시 그린다.
+ */
+let diaryBackLabel: string | null = null;
+const diaryBackListeners = new Set<() => void>();
+
+export function setDiaryBack(label: string | null): void {
+  diaryBackLabel = label;
+  diaryBackListeners.forEach((listener) => listener());
+}
+
+export function subscribeDiaryBack(listener: () => void): () => void {
+  diaryBackListeners.add(listener);
+  return () => diaryBackListeners.delete(listener);
+}
+
+export const currentDiaryBack = (): string | null => diaryBackLabel;

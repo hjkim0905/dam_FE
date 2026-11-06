@@ -5,7 +5,9 @@ import type { Locale } from "../lib/i18n";
 export type MenuAction =
   | "me" | "room" | "privacy" | "terms" | "contact" | "signOut" | "deleteAccount"
   /* 다꾸 탭의 + 버튼. 무엇을 더할지는 지금 화면을 아는 웹이 정한다. */
-  | "add";
+  | "add"
+  /* 다꾸 탭의 왼쪽 버튼. 어디로 돌아갈지도 웹이 정한다. */
+  | "back";
 
 /**
  * 헤더 메뉴의 내용. 화면이 아니라 여기 있는 이유는 아래 규칙을 테스트로 묶어 두기 위해서다.
@@ -50,6 +52,12 @@ export function homeMenu(
       },
     },
   ];
+}
+
+/** 다꾸 탭 헤더의 왼쪽 버튼. 웹이 지금 화면에 맞는 이름을 주면 그리고, 없으면 비운다. */
+export function diaryBack(select: (action: MenuAction) => void, label: string | null): NativeStackHeaderItem[] {
+  if (!label) return [];
+  return [{ type: "button", label, onPress: () => select("back") }];
 }
 
 /** 다꾸 탭 헤더의 + 버튼. 진짜 UIBarButtonItem 이라 iOS 26 이 리퀴드글래스로 그려 준다. */

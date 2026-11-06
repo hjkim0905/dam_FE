@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { isNativeApp, sendToNative, subscribeToNative
+import { isNativeApp, requestCutout, sendToNative, subscribeToNative
 } from './bridge';
 
 type Listener = (event: { data: unknown }) => void;
@@ -88,3 +88,27 @@ test('window가 없는 SSR 환경에서도 던지지 않는다', () => {
   assert.doesNotThrow(() => subscribeToNative(() => {})());
 });
 
+
+test('requestCutout 은 같은 id 의 답만 받아 그 그림을 돌려준다', async () => {
+  const w = stubWindow(true);
+  const asked = requestCutout('a.jpg', 'https://bucket.example/a.jpg');
+  const { payload } = JSON.parse(w.posted[0]) as { payload: { id: string } };
+  w.emit(JSON.stringify({ type: 'CUTOUT', payload: { id: 'other', image: 'data:image/png;base64,BBB' } }));
+  w.emit(JSON.stringify({ type: 'CUTOUT', payload: { id: payload.id, image: 'data:image/png;base64,AAA' } }));
+  assert.equal(await asked, 'data:image/png;base64,AAA');
+  assert.equal(w.listenerCount(), 0);
+});
+
+test('requestCutout 은 브라우저에서 null 이다', async () => {
+  stubWindow(false);
+  assert.equal(await requestCutout('a.jpg', 'https://bucket.example/a.jpg'), null);
+});
+
+test('requestCutout 은 누른 자리를 함께 보낸다', async () => {
+  const w = stubWindow(true);
+  const asked = requestCutout('a.jpg', 'https://bucket.example/a.jpg', { x: 0.4, y: 0.6 });
+  const { payload } = JSON.parse(w.posted[0]) as { payload: { id: string; x: number; y: number } };
+  assert.deepEqual([payload.x, payload.y], [0.4, 0.6]);
+  w.emit(JSON.stringify({ type: 'CUTOUT', payload: { id: payload.id, image: null } }));
+  assert.equal(await asked, null);
+});

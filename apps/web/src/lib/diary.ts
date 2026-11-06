@@ -128,3 +128,44 @@ export function dropItem<I extends { readonly id: number }, P extends WithItems<
 export function appendPage<P, B extends Book<P>>(book: B, page: P): B {
   return { ...book, pages: [...book.pages, page] };
 }
+
+const CUTOUT = 'cutout';
+const percent = (value: number): number => Math.round(Math.min(1, Math.max(0, value)) * 100);
+
+/** 누끼 사진의 이름. 누른 자리를 퍼센트로 적어 두면 다시 열어도 같은 피사체를 딴다. */
+export function cutoutFrame(point: Point): string {
+  return `${CUTOUT}-${percent(point.x)}-${percent(point.y)}`;
+}
+
+/** 'cutout' 은 예전처럼 피사체를 모두, 'cutout-42-60' 은 그 자리의 피사체 하나다. */
+export function cutoutPoint(frame: string | null): Point | 'whole' | null {
+  if (frame === CUTOUT) return 'whole';
+  const matched = frame?.match(/^cutout-(\d{1,3})-(\d{1,3})$/);
+  return matched ? { x: Number(matched[1]) / 100, y: Number(matched[2]) / 100 } : null;
+}
+
+export type Square = { readonly x: number; readonly y: number; readonly size: number };
+
+/**
+ * 페이지 위 사진의 정사각형 칸 안에서 누른 자리를 원본 사진의 비율 좌표로 바꾼다.
+ * 칸에는 원본의 가운데를 정사각형으로 잘라 넣었으므로 잘린 쪽을 되돌린다.
+ */
+export function pressedOnPhoto(local: Point, square: Square, natural: { width: number; height: number }): Point | null {
+  const u = (local.x - square.x) / square.size;
+  const v = (local.y - square.y) / square.size;
+  if (u < 0 || u > 1 || v < 0 || v > 1) return null;
+  const side = Math.min(natural.width, natural.height);
+  return {
+    x: ((natural.width - side) / 2 + u * side) / natural.width,
+    y: ((natural.height - side) / 2 + v * side) / natural.height,
+  };
+}
+
+/** 한 손가락으로 모서리 손잡이를 끌 때, 가운데를 축으로 한 배율과 회전. 같은 단위의 좌표여야 한다. */
+export function pivotTransform(pivot: Point, from: Point, now: Point): { scale: number; rotation: number } {
+  const before = Math.hypot(from.x - pivot.x, from.y - pivot.y);
+  const after = Math.hypot(now.x - pivot.x, now.y - pivot.y);
+  if (before < 1e-6 || after < 1e-6) return { scale: 1, rotation: 0 };
+  const rotation = Math.atan2(now.y - pivot.y, now.x - pivot.x) - Math.atan2(from.y - pivot.y, from.x - pivot.x);
+  return { scale: after / before, rotation: Math.atan2(Math.sin(rotation), Math.cos(rotation)) };
+}

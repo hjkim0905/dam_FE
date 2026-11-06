@@ -73,3 +73,29 @@ export function askForReview(): void {
 export function openOutside(url: string): void {
   sendToNative({ type: 'OPEN_URL', payload: { url } });
 }
+
+/* 누끼는 기기 안의 Vision 이 딴다. 사진 한 장에 1초 안팎이라 넉넉히 기다린다. */
+const CUTOUT_TIMEOUT_MS = 15000;
+let cutoutsAsked = 0;
+
+/** 피사체만 남긴 PNG 의 data URL. point 가 있으면 그 자리의 피사체 하나다. 브라우저이거나 피사체를 못 찾으면 null 이다. */
+export function requestCutout(key: string, url: string, point?: { x: number; y: number }): Promise<string | null> {
+  if (!isNativeApp()) return Promise.resolve(null);
+  cutoutsAsked += 1;
+  const id = `${key}#${cutoutsAsked}`;
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      unsubscribe();
+      resolve(null);
+    }, CUTOUT_TIMEOUT_MS);
+    const unsubscribe = subscribeToNative((message) => {
+      if (message.type !== 'CUTOUT') return;
+      const payload = message.payload as { id?: unknown; image?: unknown } | undefined;
+      if (payload?.id !== id) return;
+      clearTimeout(timer);
+      unsubscribe();
+      resolve(typeof payload.image === 'string' && payload.image.startsWith('data:image/png') ? payload.image : null);
+    });
+    sendToNative({ type: 'CUTOUT', payload: { id, url, ...point } });
+  });
+}

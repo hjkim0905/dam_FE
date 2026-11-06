@@ -6,6 +6,10 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   appendPage,
+  cutoutFrame,
+  cutoutPoint,
+  pivotTransform,
+  pressedOnPhoto,
   bringToFront,
   clampPlacement,
   dateLabel,
@@ -107,4 +111,39 @@ test('appendPage 는 맨 뒤에 새 페이지를 붙인다', () => {
   const next = appendPage(pages, { id: 12, position: 2, items: [] as { id: number; layer: number }[] });
   assert.deepEqual(next.pages.map((page) => page.id), [10, 11, 12]);
   assert.equal(pages.pages.length, 2);
+});
+
+test('cutoutFrame 은 누른 자리를 서버가 받는 이름으로 적는다', () => {
+  assert.equal(cutoutFrame({ x: 0.423, y: 0.6 }), 'cutout-42-60');
+  assert.equal(cutoutFrame({ x: -0.2, y: 1.4 }), 'cutout-0-100');
+  assert.match(cutoutFrame({ x: 1, y: 1 }), /^[a-z0-9]+(-[a-z0-9]+)*$/);
+  assert.ok(cutoutFrame({ x: 1, y: 1 }).length <= 16);
+});
+
+test('cutoutPoint 는 누끼 이름에서 누른 자리를 되읽는다', () => {
+  assert.deepEqual(cutoutPoint('cutout-42-60'), { x: 0.42, y: 0.6 });
+  assert.equal(cutoutPoint('cutout'), 'whole');
+  assert.equal(cutoutPoint('polaroid'), null);
+  assert.equal(cutoutPoint(null), null);
+  assert.equal(cutoutPoint('cutout-abc'), null);
+});
+
+test('pressedOnPhoto 는 가운데를 잘라 보여 준 사진에서 원본의 자리를 찾는다', () => {
+  const square = { x: -50, y: -60, size: 100 };
+  /* 가로로 긴 사진은 양옆이 잘려 있다. 보이는 정사각형의 가운데는 원본의 가운데다. */
+  assert.deepEqual(pressedOnPhoto({ x: 0, y: -10 }, square, { width: 400, height: 200 }), { x: 0.5, y: 0.5 });
+  assert.deepEqual(pressedOnPhoto({ x: -50, y: -60 }, square, { width: 400, height: 200 }), { x: 0.25, y: 0 });
+  assert.equal(pressedOnPhoto({ x: 60, y: 0 }, square, { width: 400, height: 200 }), null);
+});
+
+test('pivotTransform 은 손잡이를 끈 만큼 가운데를 축으로 키우고 돌린다', () => {
+  const pivot = { x: 0, y: 0 };
+  assert.deepEqual(pivotTransform(pivot, { x: 10, y: 0 }, { x: 10, y: 0 }), { scale: 1, rotation: 0 });
+  assert.deepEqual(pivotTransform(pivot, { x: 10, y: 0 }, { x: 20, y: 0 }), { scale: 2, rotation: 0 });
+  const turned = pivotTransform(pivot, { x: 10, y: 0 }, { x: 0, y: 10 });
+  assert.ok(Math.abs(turned.scale - 1) < 1e-9 && Math.abs(turned.rotation - Math.PI / 2) < 1e-9);
+});
+
+test('pivotTransform 은 손잡이가 축에 닿으면 그대로 둔다', () => {
+  assert.deepEqual(pivotTransform({ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 0, y: 0 }), { scale: 1, rotation: 0 });
 });

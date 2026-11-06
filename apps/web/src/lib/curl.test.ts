@@ -4,7 +4,7 @@
  */
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { bend, clampToTurn, turnedShare, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
+import { bend, clampToTurn, hugSpine, stackUnder, constrainToSpine, curlAt, foldFromDrag, turnProgress, type Fold, type Point } from './curl';
 
 const near = (actual: readonly number[], expected: readonly number[], epsilon = 1e-9) => {
   actual.forEach((value, i) => {
@@ -140,12 +140,21 @@ test('foldFromDrag 는 원통 반 바퀴를 넘겨 끌어도 이어진다', () =
   assert.ok(Math.abs(just.x - over.x) < 0.01);
 });
 
-test('turnedShare 는 접히지 않은 쪽 0, 원통을 다 돈 쪽 1, 감기는 중이면 감긴 만큼이다', () => {
-  assert.equal(turnedShare(4, 2, upright), 0);
-  assert.equal(turnedShare(5 + Math.PI, 2, upright), 1);
-  near([turnedShare(5 + Math.PI / 2, 2, upright)], [0.5]);
+test('stackUnder 는 종이가 지금 놓인 쪽 더미의 높이를 준다', () => {
+  /* 넘어간 부분이라도 아직 오른쪽 위에 걸쳐 있으면 오른쪽 더미 위에 있어야 한다. 왼쪽 높이로
+     내리면 오른쪽 더미 속으로 가라앉아 아래 장의 사진이 그 위로 비친다. */
+  assert.equal(stackUnder(0.3, 0.05, 0.01), 0.05);
+  assert.equal(stackUnder(-0.3, 0.05, 0.01), 0.01);
+  const middle = stackUnder(0, 0.05, 0.01);
+  assert.ok(middle > 0.01 && middle < 0.05, `${middle}`);
 });
 
-test('turnedShare 는 반지름이 0 인 다 넘긴 장을 왼쪽에 둔다', () => {
-  assert.equal(turnedShare(6, 2, { ...upright, radius: 0 }), 1);
+test('hugSpine 은 반을 넘긴 장의 접힌 선을 책등으로 당긴다', () => {
+  const fold: Fold = { x: 0.3, y: 0.7, angle: 0, radius: 0.1 };
+  assert.deepEqual(hugSpine(fold, 0.2), fold);
+  assert.equal(hugSpine(fold, 1).x, 0);
+  /* 책등에 원통이 남으면 그 위쪽 면이 앞면이라 사진이 띠로 비친다. 다 붙으면 말린 곳도 없다. */
+  assert.equal(hugSpine(fold, 1).radius, 0);
+  const half = hugSpine(fold, 0.6).x;
+  assert.ok(half > 0 && half < 0.3, `${half}`);
 });

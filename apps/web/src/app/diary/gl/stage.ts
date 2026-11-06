@@ -31,15 +31,12 @@ export type Stage = {
   dispose: () => void;
 };
 
-/**
- * 장면을 view 크기가 화면에 꼭 맞도록 비춘다. 카메라를 살짝 아래에서 기울여야
- * 종이가 들릴 때 높이가 보인다. 정면에서 보면 휘는 것이 그냥 줄어드는 것처럼 보인다.
- */
-export function createStage(
-  canvas: HTMLCanvasElement,
-  view: { width: number; height: number },
-  { tilt = 0.18 }: { tilt?: number } = {}
-): Stage {
+/* 카메라를 살짝 아래에서 기울여야 종이가 들릴 때 높이가 보인다. 정면에서 보면 휘는 것이
+   그냥 줄어드는 것처럼 보인다. 더 기울이면 말린 종이 아래 끝으로 그 장의 앞면이 들여다보인다. */
+const TILT = 0.07;
+
+/** 장면을 view 크기가 화면에 꼭 맞도록 비춘다. */
+export function createStage(canvas: HTMLCanvasElement, view: { width: number; height: number }): Stage {
   const renderer = new WebGLRenderer({ canvas, antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.shadowMap.enabled = true;
@@ -59,6 +56,8 @@ export function createStage(
   /* 낱장 사이 간격이 0.0025 라 기본 바이어스로는 종이가 자기 그림자로 얼룩진다. */
   sun.shadow.bias = -0.0004;
   sun.shadow.normalBias = 0.015;
+  /* 넘기는 장이 책상에 떨어뜨리는 그림자가 각진 회색 판으로 보이지 않게 가장자리를 푼다. */
+  sun.shadow.radius = 6;
   scene.add(sun);
 
   const camera = new PerspectiveCamera(FOV, 1, 0.01, 100);
@@ -71,8 +70,13 @@ export function createStage(
   const aim = () => {
     const half = Math.tan((FOV * Math.PI) / 360);
     const distance = Math.max(framed.height / 2 / half, framed.width / 2 / (half * camera.aspect));
-    camera.position.set(framed.x, -distance * tilt, distance);
+    camera.position.set(framed.x, -distance * TILT, distance);
     camera.lookAt(framed.x, 0, 0);
+    /* 낱장 사이가 0.0025 다. 깊이 범위를 책 둘레로 좁혀야 폰 GPU 에서도 아래 장의 사진이
+       위 장을 뚫고 비치거나 깜빡이지 않는다. 0.01~100 이면 정밀도가 그 간격에 못 미친다. */
+    camera.near = distance * 0.4;
+    camera.far = distance * 2;
+    camera.updateProjectionMatrix();
   };
 
   const fit = () => {

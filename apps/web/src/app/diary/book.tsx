@@ -5,12 +5,13 @@ import { css } from '@emotion/react';
 import { useEffect, useRef } from 'react';
 import type { Texture } from 'three';
 import type { Book as BookData, DiaryPage } from '@/lib/api/diary';
-import { clampToTurn, constrainToSpine, foldFromDrag, turnProgress, type Point } from '@/lib/curl';
+import { clampToTurn, constrainToSpine, foldFromDrag, hugSpine, turnProgress, type Point } from '@/lib/curl';
 import { spring, velocityOf, type Sample, type Spring } from '@/lib/motion';
 import { createBook, LEAF_GAP } from './gl/book-model';
-import { coverTexture, sideTexture } from './gl/cover-art';
+import { coverTexture, endpaperTexture, sideTexture } from './gl/cover-art';
 import { createSheet } from './gl/page-curl';
 import { createStage } from './gl/stage';
+import { loadHand } from './hand';
 import type { Images } from './page-art';
 
 const PAGE = { width: 1, height: 1.4 };
@@ -33,7 +34,7 @@ const OPEN_VIEW = PAGE.width * 2.25;
 const PAINTED_AROUND = 2;
 
 type Leaf = { turned: boolean; grab: Point; x: Spring; y: Spring };
-type Drag = { index: number; fromRight: boolean; start: Point; from: Point; samples: Sample[] };
+type Drag = { pointer: number; index: number; fromRight: boolean; start: Point; from: Point; samples: Sample[] };
 
 export type Art = { book: BookData; pages: readonly DiaryPage[]; images: Images };
 
@@ -63,7 +64,8 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
   const stage = createStage(canvas, { width: CLOSED_VIEW, height: PAGE.height * 1.2 });
   const blank = sideTexture(null, new Map(), font);
   let cover = coverTexture(font, art.book.coverColor, art.book.year);
-  const book = createBook(PAGE, { outside: cover, inside: blank }, count);
+  const endpaper = endpaperTexture(font, art.book.coverColor, art.book.year, art.book.shared);
+  const book = createBook(PAGE, { outside: cover, inside: endpaper }, count);
   const sheets = Array.from({ length: count }, () => createSheet(PAGE, blank, blank));
   stage.scene.add(book.group, ...sheets.map((sheet) => sheet.group));
 
@@ -107,6 +109,8 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
    * 손가락에 붙이면 그 바깥쪽 절반이 한 번에 뒤집혀 탁 접힌다.
    */
   const onDown = (event: PointerEvent) => {
+    /* 앞 손가락의 뗌을 놓쳤으면 그 장이 넘기던 모양 그대로 굳는다. 새로 닿으면 먼저 제자리로 보낸다. */
+    if (drag && drag.pointer !== event.pointerId) finish(null, event.timeStamp);
     const point = local(event);
     if (drag || !point || Math.abs(point.x) > PAGE.width || point.y < 0 || point.y > PAGE.height) return;
     const fromRight = point.x >= 0;
@@ -116,46 +120,63 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
     const grab = { x: PAGE.width, y: point.y };
     const from = fromRight ? grab : mirror(grab);
     leaves[index] = { ...leaves[index], grab, x: still(from.x), y: still(from.y) };
-    drag = { index, fromRight, start: point, from, samples: [{ time: event.timeStamp, x: point.x }] };
+    drag = { pointer: event.pointerId, index, fromRight, start: point, from, samples: [{ time: event.timeStamp, x: point.x }] };
   };
 
   const onMove = (event: PointerEvent) => {
     const point = local(event);
-    if (!drag || !point) return;
+    if (!drag || !point || event.pointerId !== drag.pointer) return;
     const leaf = leaves[drag.index];
-    const pulled = { x: drag.from.x + point.x - drag.start.x, y: drag.from.y + point.y - drag.start.y };
+    /* 위아래로 끈 만큼 따라가면 접힌 선이 기울어, 책등 쪽에 넘어가는 장 앞면이 삼각형으로 남는다.
+       그 띠가 아래 장을 뚫고 나온 사진처럼 보인다. 옆으로만 따라가 접힌 선을 늘 세로로 세운다. */
+    const pulled = { x: drag.from.x + point.x - drag.start.x, y: drag.from.y };
     const finger = drag.index === 0 ? pulled : constrainToSpine(leaf.grab, pulled, PAGE);
     drag = { ...drag, samples: [...drag.samples.slice(-12), { time: event.timeStamp, x: point.x }] };
     leaves[drag.index] = { ...leaf, x: still(finger.x), y: still(finger.y) };
   };
 
-  const onUp = (event: PointerEvent) => {
+  /** 손을 뗀 자리(모르면 null)로 넘길지 되돌릴지 정한다. null 이면 누른 것으로 치지 않는다. */
+  function finish(point: Point | null, time: number) {
     if (!drag) return;
     const { index, fromRight, start } = drag;
     const leaf = leaves[index];
-    const point = local(event) ?? start;
-    /* 누르기만 했으면 넘기지 않고 그 면을 꾸미러 간다. 표지는 꾸미지 않는다. */
-    if (gap(point, start) < TAP_SLOP) {
+    /* 누르기만 했으면 넘기지 않고 그 면을 보러 간다. 표지는 열지 않는다. */
+    if (point && gap(point, start) < TAP_SLOP) {
       leaves[index] = { ...leaf, x: still(goalOf(leaf).x), y: still(goalOf(leaf).y) };
       drag = null;
       if (index > 0) onTap(fromRight ? (index - 1) * 2 : (index - 1) * 2 + 1);
       return;
     }
     const progress = turnProgress(leaf.grab, fingerOf(leaf));
-    const velocity = velocityOf(drag.samples, event.timeStamp);
+    const velocity = velocityOf(drag.samples, time);
     const travelled = fromRight ? progress : 1 - progress;
     const flicked = travelled > FLICK_MIN && (fromRight ? velocity < -FLICK_SPEED : velocity > FLICK_SPEED);
     const committed = travelled > COMMIT_AT || flicked;
-    const thrown = Math.max(-MAX_THROW, Math.min(MAX_THROW, velocity));
-    leaves[index] = { ...leaf, turned: fromRight ? committed : !committed, x: { ...leaf.x, velocity: thrown } };
+    const turned = fromRight ? committed : !committed;
+    /* 되돌아갈 때 반대로 던지던 속도를 그대로 넘기면, 조금 연 종이가 왼쪽으로 크게 휙 넘어갔다 돌아온다.
+       가야 할 쪽으로 향한 속도만 이어받는다. 넘긴 장은 왼쪽(-), 덮는 장은 오른쪽(+)으로 간다. */
+    const toward = turned ? velocity < 0 : velocity > 0;
+    const thrown = toward ? Math.max(-MAX_THROW, Math.min(MAX_THROW, velocity)) : 0;
+    leaves[index] = { ...leaf, turned, x: { ...leaf.x, velocity: thrown } };
     drag = null;
     paintAround();
+  }
+
+  const onUp = (event: PointerEvent) => {
+    if (!drag || event.pointerId !== drag.pointer) return;
+    finish(local(event), event.timeStamp);
+  };
+  /* 손가락이 탭바나 화면 끝으로 나가면 웹뷰가 pointerup 없이 붙잡기만 풀 때가 있다. 그때도 뗀 것이다. */
+  const onLost = (event: PointerEvent) => {
+    if (!drag || event.pointerId !== drag.pointer) return;
+    finish(null, event.timeStamp);
   };
 
   canvas.addEventListener('pointerdown', onDown);
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('pointercancel', onUp);
+  canvas.addEventListener('lostpointercapture', onLost);
 
   const drawn: (Point | null)[] = leaves.map(() => null);
   let coverDrawn = -1;
@@ -188,7 +209,8 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
       drawn[i + 1] = finger;
       moved = true;
       const progress = turnProgress(grab, finger);
-      const fold = gap(grab, finger) < MIN_FOLD ? null : foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
+      const pulled = gap(grab, finger) < MIN_FOLD ? null : foldFromDrag(grab, finger, CURL_RADIUS * (1 - progress));
+      const fold = pulled && hugSpine(pulled, progress);
       const right = book.restZ + (count - i) * LEAF_GAP;
       const left = book.leftZ + (i + 1) * LEAF_GAP;
       /* 가만히 놓인 종이끼리는 그림자를 주고받지 않는다. 좁은 간격에서 서로 얼룩진다. */
@@ -220,10 +242,12 @@ function mountBook(canvas: HTMLCanvasElement, { sheets: count, turned: initially
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('pointercancel', onUp);
+      canvas.removeEventListener('lostpointercapture', onLost);
       painted.forEach((texture) => texture.dispose());
       sheets.forEach((sheet) => sheet.dispose());
       book.dispose();
       blank.dispose();
+      endpaper.dispose();
       stage.dispose();
     },
   };
@@ -247,13 +271,13 @@ export default function Book({ book, pages, images, turnedRef, onEdit }: Props) 
     if (!canvas) return undefined;
     let gone = false;
     /* 캔버스에 글씨를 그릴 때 폰트가 아직 없으면 시스템 폰트로 굳어 버린다. */
-    void document.fonts.ready.then(() => {
+    void loadHand().then((font) => {
       if (gone) return;
       controller.current = mountBook(canvas, {
         sheets,
         turned: Math.min(turnedRef.current, sheets + 1),
         art: latest.current.art,
-        font: getComputedStyle(document.body).fontFamily,
+        font,
         onTap: (side) => latest.current.onEdit(side),
       });
     });

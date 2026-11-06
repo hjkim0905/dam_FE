@@ -42,15 +42,16 @@ export function bend(px: number, py: number, fold: Fold): Point3 {
   return [bx + nx * lift, by + ny * lift, radius * (1 - Math.cos(phi))];
 }
 
+/* 책등 양쪽으로 이만큼은 두 더미 높이 사이를 잇는다. 딱 끊으면 책등에서 종이가 계단처럼 꺾인다. */
+const SPINE_BLEND = 0.02;
+
 /**
- * 그 점이 왼쪽 더미로 얼마나 넘어갔는지. 0 은 아직 오른쪽에 누운 자리, 1 은 원통을 다 돌아
- * 왼쪽에 누운 자리다. 종이 전체를 한 높이로 옮기면 덜 넘긴 쪽이 아래 묶음 속으로 가라앉는다.
+ * 종이 위 한 점이 지금 놓인 쪽 더미의 높이. 넘어간 정도로 정하면, 넘어갔지만 아직 오른쪽
+ * 위에 걸친 부분이 왼쪽 높이로 내려가 오른쪽 더미 속에 가라앉는다. x 는 책등이 0 이다.
  */
-export function turnedShare(px: number, py: number, fold: Fold): number {
-  const s = (px - fold.x) * Math.cos(fold.angle) + (py - fold.y) * Math.sin(fold.angle);
-  if (s <= 0) return 0;
-  const arc = Math.PI * fold.radius;
-  return arc <= 0 || s >= arc ? 1 : s / arc;
+export function stackUnder(x: number, right: number, left: number): number {
+  const t = clamp01((x + SPINE_BLEND) / (2 * SPINE_BLEND));
+  return left + (right - left) * t;
 }
 
 /**
@@ -146,4 +147,19 @@ export function curlAt(grab: Point, direction: Point, radius: number, sweep: num
  */
 export function clampToTurn(grab: Point, finger: Point): Point {
   return { x: Math.min(grab.x, Math.max(-grab.x, finger.x)), y: finger.y };
+}
+
+/* 이만큼 넘기기 시작하면 접힌 선을 책등 쪽으로 당기고, 여기까지 넘기면 책등에 붙인다. */
+const HUG_FROM = 0.4;
+const HUG_TO = 0.8;
+
+/**
+ * 반을 넘긴 장은 책등 쪽이 먼저 들려야 한다. 접힌 선이 손가락만 따라가면 책등과 접힌 선
+ * 사이가 오른쪽에 납작하게 남아, 넘어가는 장의 앞면이 아래 장 위에 띠처럼 비친다.
+ * 말린 반지름도 함께 줄인다. 책등에 원통이 남으면 그 위쪽 면이 앞면이라 같은 띠가 보인다.
+ */
+export function hugSpine(fold: Fold, progress: number): Fold {
+  const t = clamp01((progress - HUG_FROM) / (HUG_TO - HUG_FROM));
+  const eased = t * t * (3 - 2 * t);
+  return eased === 0 ? fold : { ...fold, x: fold.x * (1 - eased), radius: fold.radius * (1 - eased) };
 }

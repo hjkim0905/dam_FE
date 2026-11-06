@@ -96,7 +96,7 @@ export type Book = {
 export function createBook(page: Size, cover: { outside: Texture; inside: Texture }, leaves: number): Book {
   const group = new Group();
 
-  const desk = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: 0.1 }));
+  const desk = new Mesh(new PlaneGeometry(8, 8), new ShadowMaterial({ opacity: 0.06 }));
   desk.position.z = -BOARD_THICKNESS;
   desk.receiveShadow = true;
 

@@ -140,6 +140,7 @@ const panelStyle = css`
     calc(2rem + var(--inset-bottom, env(safe-area-inset-bottom)));
   border-radius: var(--radius-card) var(--radius-card) 0 0;
   background: var(--color-background);
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
 `;

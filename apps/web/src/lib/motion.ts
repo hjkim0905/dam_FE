@@ -1,8 +1,3 @@
-/** 프레임 간격이 들쭉날쭉해도 같은 속도로 따라가도록 지수 감쇠로 다가간다. */
-export function approach(current: number, target: number, seconds: number, rate: number): number {
-  return current + (target - current) * (1 - Math.exp(-rate * seconds));
-}
-
 export type Spring = { readonly value: number; readonly velocity: number };
 
 /* 놓은 종이가 펴지는 빠르기와 탄력. 감쇠비 0.82 면 1% 남짓만 지나쳤다 돌아온다.

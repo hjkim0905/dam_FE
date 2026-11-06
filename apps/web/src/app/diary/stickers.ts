@@ -1,169 +1,61 @@
 /*
- * 담. 의 픽셀 스티커. 글자 한 칸이 픽셀 한 칸이다. 이름은 서버가 받는 꼴(소문자와 하이픈)과
- * 같아야 저장된다. 그림을 고쳐도 이름은 바꾸지 않는다. 이미 붙인 스티커가 사라진다.
+ * 다꾸 스티커는 Microsoft Fluent Emoji 3D (MIT, public/stickers/LICENSE.txt) 다. 이름은 서버가 받는
+ * 꼴(소문자와 하이픈, 32자 이하)과 같아야 저장된다. 파일을 바꿔도 이름은 바꾸지 않는다. 이미 붙인 스티커가 사라진다.
  */
+export const STICKER_NAMES: readonly string[] = [
+  'pink-heart', 'red-heart', 'two-hearts', 'sparkling-heart', 'heart-with-ribbon', 'love-letter',
+  'sparkles', 'star', 'glowing-star', 'rainbow', 'cloud', 'sun-with-face', 'crescent-moon', 'bubbles',
+  'smiling-face-with-smiling-eyes', 'smiling-face-with-hearts', 'star-struck',
+  'teddy-bear', 'bear', 'cat-face', 'dog-face', 'rabbit-face', 'hamster', 'panda', 'penguin', 'hatching-chick',
+  'frog', 'unicorn', 'dolphin', 'butterfly',
+  'shortcake', 'birthday-cake', 'cupcake', 'doughnut', 'cookie', 'croissant', 'pancakes', 'soft-ice-cream',
+  'shaved-ice', 'lollipop', 'candy', 'bubble-tea', 'hot-beverage', 'teacup-without-handle', 'clinking-glasses',
+  'strawberry', 'cherries', 'peach', 'watermelon', 'lemon',
+  'cherry-blossom', 'tulip', 'sunflower', 'four-leaf-clover',
+  'ribbon', 'wrapped-gift', 'balloon', 'party-popper', 'crown', 'ring', 'lipstick', 'camera-with-flash',
+  'headphone', 'musical-note', 'pencil', 'scissors', 'paperclip', 'pushpin', 'airplane', 'house',
+];
 
-const INK = '#5a4d44';
-const WHITE = '#fffaf0';
-
-type Sprite = { rows: readonly string[]; colors: Readonly<Record<string, string>> };
-
-export const STICKERS: Readonly<Record<string, Sprite>> = {
-  'heart-pink': {
-    colors: { o: INK, p: '#f2a7b4', h: WHITE },
-    rows: [
-      '..oo...oo..',
-      '.ohpo.oppo.',
-      'ohpppoppppo',
-      'opppppppppo',
-      'opppppppppo',
-      '.opppppppo.',
-      '..opppppo..',
-      '...opppo...',
-      '....opo....',
-      '.....o.....',
-    ],
-  },
-  'star-yellow': {
-    colors: { o: INK, y: '#f6cf7a', h: WHITE },
-    rows: [
-      '.....o.....',
-      '....oyo....',
-      '....oyo....',
-      'ooooyyyoooo',
-      'oyyyyhyyyyo',
-      '.oyyyyyyyo.',
-      '..oyyyyyo..',
-      '.oyyyoyyyo.',
-      '.oyyo.oyyo.',
-      'oyyo...oyyo',
-      'ooo.....ooo',
-    ],
-  },
-  'flower-pink': {
-    colors: { o: INK, p: '#f2a7b4', y: '#f6cf7a', g: '#9fd3b5' },
-    rows: [
-      '...ooooo...',
-      '..oppoppo..',
-      '.oppoyoppo.',
-      '.oooyyyooo.',
-      '.oppoyoppo.',
-      '..oppoppo..',
-      '...ooooo...',
-      '....ogo....',
-      '..oogggoo..',
-      '....ogo....',
-      '....ogo....',
-    ],
-  },
-  cloud: {
-    colors: { o: INK, h: WHITE },
-    rows: [
-      '....oooo.....',
-      '..oohhhhoo...',
-      '.ohhhhhhhhooo',
-      'ohhhhhhhhhhho',
-      'ohhhhhhhhhhho',
-      '.ohhhhhhhhho.',
-      '..ooooooooo..',
-    ],
-  },
-  'drop-blue': {
-    colors: { o: INK, b: '#9cc3ef', h: WHITE },
-    rows: [
-      '....o....',
-      '...obo...',
-      '...obo...',
-      '..obbbo..',
-      '.obhbbbo.',
-      'obhbbbbbo',
-      'obhbbbbbo',
-      'obbbbbbbo',
-      '.obbbbbo.',
-      '..ooooo..',
-    ],
-  },
-  sparkle: {
-    colors: { o: INK, y: '#f6cf7a', h: WHITE },
-    rows: [
-      '....o....',
-      '....y....',
-      '...yhy...',
-      'oyyhhhyyo',
-      '...yhy...',
-      '....y....',
-      '....o....',
-    ],
-  },
-  smile: {
-    colors: { o: INK, y: '#f6cf7a' },
-    rows: [
-      '...ooooo...',
-      '..oyyyyyo..',
-      '.oyyyyyyyo.',
-      'oyyoyyyoyyo',
-      'oyyoyyyoyyo',
-      'oyyyyyyyyyo',
-      'oyoyyyyyoyo',
-      'oyyoooooyyo',
-      '.oyyyyyyyo.',
-      '..oyyyyyo..',
-      '...ooooo...',
-    ],
-  },
-  cherry: {
-    colors: { o: INK, r: '#e86a7a', h: WHITE, g: '#9fd3b5' },
-    rows: [
-      '......oo...',
-      '.....ogo...',
-      '....og.o...',
-      '...og...o..',
-      '..og....o..',
-      '.ooo...ooo.',
-      'orrho.orrho',
-      'orrro.orrro',
-      'orrro.orrro',
-      '.ooo...ooo.',
-    ],
-  },
+/* 픽셀 스티커 시절에 붙인 것들. 서버에 남은 이름을 가장 닮은 그림으로 그린다. */
+const RENAMED: Readonly<Record<string, string>> = {
+  'heart-pink': 'pink-heart',
+  'star-yellow': 'star',
+  'flower-pink': 'cherry-blossom',
+  'drop-blue': 'bubbles',
+  sparkle: 'sparkles',
+  smile: 'smiling-face-with-smiling-eyes',
+  cherry: 'cherries',
 };
 
-export const STICKER_NAMES = Object.keys(STICKERS);
+export const stickerUrl = (name: string): string => `/stickers/${RENAMED[name] ?? name}.webp`;
 
-export function spriteSize(name: string): { width: number; height: number } {
-  const sprite = STICKERS[name];
-  if (!sprite) return { width: 1, height: 1 };
-  return { width: Math.max(...sprite.rows.map((row) => row.length)), height: sprite.rows.length };
+const images = new Map<string, HTMLImageElement>();
+let loading: Promise<void> | null = null;
+
+/** 모두 받아 둔다. 책 텍스처는 한 번에 그려서, 그때 없던 스티커는 다음에 다시 그릴 때까지 빈자리로 남는다. */
+export function loadStickers(): Promise<void> {
+  loading ??= Promise.all([...STICKER_NAMES, ...Object.keys(RENAMED)].map((name) => new Promise<void>((resolve) => {
+    const image = new Image();
+    image.onload = () => {
+      images.set(name, image);
+      resolve();
+    };
+    /* 하나가 안 와도 나머지는 붙어야 한다. 빠진 것은 그리지 않는다. */
+    image.onerror = () => resolve();
+    image.src = stickerUrl(name);
+  }))).then(() => undefined);
+  return loading;
 }
 
-/** 칸 하나를 cell 픽셀로 칠한다. 모르는 이름은 그리지 않는다. 옛 앱이 새 스티커를 만나도 깨지지 않게. */
-export function drawSprite(paint: CanvasRenderingContext2D, name: string, x: number, y: number, cell: number) {
-  const sprite = STICKERS[name];
-  if (!sprite) return;
-  sprite.rows.forEach((row, r) => {
-    [...row].forEach((key, c) => {
-      const color = sprite.colors[key];
-      if (!color) return;
-      paint.fillStyle = color;
-      paint.fillRect(Math.round(x + c * cell), Math.round(y + r * cell), Math.ceil(cell), Math.ceil(cell));
-    });
-  });
-}
+export const stickerReady = (name: string): boolean => images.has(name);
 
-/** 바텀시트와 편집 화면이 <img> 로 쓰는 그림. 한 번 만들면 다시 그리지 않는다. */
-const urls = new Map<string, string>();
-
-export function spriteUrl(name: string, cell = 4): string {
-  const key = `${name}@${cell}`;
-  const cached = urls.get(key);
-  if (cached) return cached;
-  const { width, height } = spriteSize(name);
-  const canvas = document.createElement('canvas');
-  canvas.width = width * cell;
-  canvas.height = height * cell;
-  const paint = canvas.getContext('2d');
-  if (paint) drawSprite(paint, name, 0, 0, cell);
-  const url = canvas.toDataURL('image/png');
-  urls.set(key, url);
-  return url;
+/** 모르는 이름이나 아직 안 온 그림은 그리지 않는다. 옛 앱이 새 스티커를 만나도 깨지지 않게. */
+export function drawSticker(paint: CanvasRenderingContext2D, name: string, x: number, y: number, size: number) {
+  const image = images.get(name);
+  if (!image) return;
+  const smooth = paint.imageSmoothingEnabled;
+  paint.imageSmoothingEnabled = true;
+  paint.imageSmoothingQuality = 'high';
+  paint.drawImage(image, x, y, size, size);
+  paint.imageSmoothingEnabled = smooth;
 }

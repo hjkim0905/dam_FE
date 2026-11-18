@@ -17,6 +17,8 @@
 <img src="https://img.shields.io/badge/Expo-57-000020?logo=expo&logoColor=white" alt="Expo 57">
 <img src="https://img.shields.io/badge/Spring_Boot-4-6DB33F?logo=springboot&logoColor=white" alt="Spring Boot 4">
 
+<strong>Language:</strong> 한국어 | <a href="README.en.md">English</a>
+
 [왜 만들었나](#왜-만들었나) | [아키텍처](#아키텍처) | [문제 해결](#문제-해결) | [개발 방식](#개발-방식) | [실행](#실행)
 
 </div>
